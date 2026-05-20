@@ -1,7 +1,9 @@
 from django.urls import path
+from . import views
 
-# Esta lista vacía permite que Django reconozca el módulo 
-# sin que tengas que definir vistas todavía.
+app_name = 'visitors'
+
 urlpatterns = [
-    
+    path('', views.dashboard, name='dashboard'),
+    path('ingreso/', views.registrar_ingreso, name='registrar_ingreso'),
 ]

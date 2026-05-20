@@ -56,8 +56,7 @@ ROOT_URLCONF = 'SistemaVisitantes.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Ajustado a 'temmplates' con doble M como tienes tu carpeta
-        'DIRS': [BASE_DIR / 'temmplates'], 
+        'DIRS': [BASE_DIR / 'SistemaVisitantes' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

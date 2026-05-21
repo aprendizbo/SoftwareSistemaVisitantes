@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container-fluid px-4 mt-4">
 
-    <!-- Título -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold text-secondary mb-0">
             <i class="bi bi-speedometer2 text-primary"></i> Panel Principal
@@ -14,7 +13,6 @@
         </span>
     </div>
 
-    <!-- Tarjetas de contadores -->
     <div class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card border-0 shadow-sm bg-primary text-white h-100">
@@ -69,10 +67,8 @@
         </div>
     </div>
 
-    <!-- Tabla principal + Últimos movimientos -->
     <div class="row g-4">
 
-        <!-- Visitantes activos -->
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -94,6 +90,7 @@
                                     <th>Hora Entrada</th>
                                     <th>Token</th>
                                     <th>Estado</th>
+                                    <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -118,10 +115,18 @@
                                             En instalaciones
                                         </span>
                                     </td>
+                                    <td class="text-center">
+                                        <form action="{% url 'visitors:registrar_salida' visita.id %}" method="POST" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="return confirm('¿Confirmar salida de este visitante?');">
+                                                <i class="bi bi-door-closed-fill"></i> Salida
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-5">
+                                    <td colspan="7" class="text-center text-muted py-5">
                                         <i class="bi bi-inbox display-6 d-block mb-2"></i>
                                         No hay visitantes dentro del establecimiento.
                                     </td>
@@ -134,7 +139,6 @@
             </div>
         </div>
 
-        <!-- Últimos movimientos (historial real del día) -->
         <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3">

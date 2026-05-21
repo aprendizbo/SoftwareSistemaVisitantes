@@ -1,0 +1,481 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-secondary mb-0">
+            <i class="bi bi-box-arrow-right text-danger"></i> Registro de Salida
+        </h4>
+        <a href="{% url 'visitors:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+
+    <!-- PASO 1: Error de token -->
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- PASO 2: Confirmar checkout de visita encontrada -->
+    {% if confirmar and visit %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark fw-bold py-3">
+            <i class="bi bi-person-fill"></i> Confirmar Salida
+        </div>
+        <div class="card-body py-4 text-center">
+            {% if visit.photo %}
+                <img src="{{ visit.photo.url }}" class="rounded-circle mb-3"
+                     width="80" height="80" style="object-fit:cover; border: 3px solid #ffc107;">
+            {% else %}
+                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:80px; height:80px;">
+                    <i class="bi bi-person-fill text-white" style="font-size: 2rem;"></i>
+                </div>
+            {% endif %}
+
+            <h4 class="fw-bold">{{ visit.visitor.first_name }} {{ visit.visitor.last_name }}</h4>
+            <p class="text-muted mb-1">
+                <span class="badge bg-secondary">{{ visit.visitor.get_visitor_type_display }}</span>
+            </p>
+            <p class="mb-1">Token: <code class="fw-bold text-danger fs-5">{{ visit.token_qr }}</code></p>
+            <p class="mb-1 text-muted">Entrada: <strong>{{ visit.entry_time|time:"H:i" }}</strong></p>
+            {% if visit.visitor.company %}
+            <p class="mb-1 text-muted">Empresa: <strong>{{ visit.visitor.company }}</strong></p>
+            {% endif %}
+            <p class="mb-3 text-muted">Persona visitada: <strong>{{ visit.person_to_visit }}</strong></p>
+
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-danger btn-lg px-4" id="btn-confirmar-salida"
+                        data-visit-id="{{ visit.id }}">
+                    <i class="bi bi-box-arrow-right"></i> Confirmar Salida
+                </button>
+                <a href="{% url 'visitors:checkout' %}" class="btn btn-outline-secondary btn-lg">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASO 3: Resultado exitoso (se muestra via JS) -->
+    <div id="resultado-checkout" class="card border-0 shadow-sm d-none">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+            <h4 class="fw-bold text-success">¡Salida Registrada!</h4>
+            <p class="fs-5 mb-1" id="res-nombre"></p>
+            <p class="text-muted mb-1">Token: <code id="res-token" class="fw-bold text-danger"></code></p>
+            <p class="text-muted">Hora de salida: <strong id="res-hora"></strong></p>
+            <a href="{% url 'visitors:checkout' %}" class="btn btn-primary mt-3 me-2">
+                <i class="bi bi-qr-code-scan"></i> Nuevo Checkout
+            </a>
+            <a href="{% url 'visitors:dashboard' %}" class="btn btn-success mt-3">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SIEMPRE VISIBLE: Escáner QR + búsqueda manual -->
+    {% if not confirmar %}
+    <div class="row g-4">
+
+        <!-- Escáner QR -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold text-secondary">
+                    <i class="bi bi-qr-code-scan text-primary"></i> Escanear QR
+                </div>
+                <div class="card-body text-center">
+                    <div id="reader" style="width: 100%;"></div>
+                    <p class="text-muted small mt-2">
+                        Apunta la cámara al código QR del gafete del visitante
+                    </p>
+                    <button id="btn-iniciar-camara" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-camera"></i> Iniciar Cámara
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Búsqueda manual por token -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold text-secondary">
+                    <i class="bi bi-search text-warning"></i> Buscar por Token
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Si el QR no escanea, ingresa el token manualmente (ej: <code>A1B2C3D4</code>)
+                    </p>
+                    <div class="input-group mt-3">
+                        <input type="text" id="input-token-manual" class="form-control text-uppercase fw-bold"
+                               placeholder="Token del gafete" maxlength="8"
+                               style="letter-spacing: 3px; font-size: 1.1rem;">
+                        <button class="btn btn-warning" id="btn-buscar-token">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                    <div id="error-manual" class="text-danger small mt-2 d-none"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Librería html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Escáner QR ──────────────────────────────────────────────
+    const btnCamara = document.getElementById('btn-iniciar-camara');
+    let scanner = null;
+
+    if (btnCamara) {
+        btnCamara.addEventListener('click', function () {
+            btnCamara.disabled = true;
+            btnCamara.innerHTML = '<i class="bi bi-camera-video"></i> Cámara activa...';
+
+            scanner = new Html5QrcodeScanner("reader", {
+                fps: 10,
+                qrbox: { width: 220, height: 220 },
+                rememberLastUsedCamera: true,
+            }, false);
+
+            scanner.render(
+                function (token) {
+                    // QR escaneado — redirige a confirmación
+                    scanner.clear();
+                    window.location.href = `/visitantes/checkout/${token.trim()}/`;
+                },
+                function (err) {
+                    // Error de escaneo — silencioso
+                }
+            );
+        });
+    }
+
+    // ── Búsqueda manual por token ───────────────────────────────
+    const btnBuscar = document.getElementById('btn-buscar-token');
+    const inputToken = document.getElementById('input-token-manual');
+    const errorManual = document.getElementById('error-manual');
+
+    if (btnBuscar) {
+        btnBuscar.addEventListener('click', buscarToken);
+        inputToken.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') buscarToken();
+        });
+    }
+
+    function buscarToken() {
+        const token = inputToken.value.trim().toUpperCase();
+        if (!token || token.length < 4) {
+            errorManual.textContent = 'Ingresa un token válido (mínimo 4 caracteres).';
+            errorManual.classList.remove('d-none');
+            return;
+        }
+        window.location.href = `/visitantes/checkout/${token}/`;
+    }
+
+    // ── Confirmar checkout via AJAX ─────────────────────────────
+    const btnConfirmar = document.getElementById('btn-confirmar-salida');
+
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', function () {
+            const visitId = this.dataset.visitId;
+            btnConfirmar.disabled = true;
+            btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registrando...';
+
+            fetch(`/visitantes/checkout/confirmar/${visitId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    // Oculta tarjeta de confirmación, muestra resultado
+                    document.querySelector('.card.border-0.shadow-sm.mb-4').classList.add('d-none');
+                    const resultado = document.getElementById('resultado-checkout');
+                    resultado.classList.remove('d-none');
+                    document.getElementById('res-nombre').textContent = data.nombre;
+                    document.getElementById('res-token').textContent = data.token;
+                    document.getElementById('res-hora').textContent = data.exit_time;
+                } else {
+                    alert('Error: ' + data.error);
+                    btnConfirmar.disabled = false;
+                    btnConfirmar.innerHTML = '<i class="bi bi-box-arrow-right"></i> Confirmar Salida';
+                }
+            })
+            .catch(() => {
+                alert('Error de conexión. Intenta de nuevo.');
+                btnConfirmar.disabled = false;
+            });
+        });
+    }
+
+    // ── CSRF helper ─────────────────────────────────────────────
+    function getCookie(name) {
+        let val = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(c => {
+                c = c.trim();
+                if (c.startsWith(name + '=')) val = decodeURIComponent(c.slice(name.length + 1));
+            });
+        }
+        return val;
+    }
+
+});
+</script>
+{% endblock %}{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-secondary mb-0">
+            <i class="bi bi-box-arrow-right text-danger"></i> Registro de Salida
+        </h4>
+        <a href="{% url 'visitors:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+
+    <!-- PASO 1: Error de token -->
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- PASO 2: Confirmar checkout de visita encontrada -->
+    {% if confirmar and visit %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark fw-bold py-3">
+            <i class="bi bi-person-fill"></i> Confirmar Salida
+        </div>
+        <div class="card-body py-4 text-center">
+            {% if visit.photo %}
+                <img src="{{ visit.photo.url }}" class="rounded-circle mb-3"
+                     width="80" height="80" style="object-fit:cover; border: 3px solid #ffc107;">
+            {% else %}
+                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:80px; height:80px;">
+                    <i class="bi bi-person-fill text-white" style="font-size: 2rem;"></i>
+                </div>
+            {% endif %}
+
+            <h4 class="fw-bold">{{ visit.visitor.first_name }} {{ visit.visitor.last_name }}</h4>
+            <p class="text-muted mb-1">
+                <span class="badge bg-secondary">{{ visit.visitor.get_visitor_type_display }}</span>
+            </p>
+            <p class="mb-1">Token: <code class="fw-bold text-danger fs-5">{{ visit.token_qr }}</code></p>
+            <p class="mb-1 text-muted">Entrada: <strong>{{ visit.entry_time|time:"H:i" }}</strong></p>
+            {% if visit.visitor.company %}
+            <p class="mb-1 text-muted">Empresa: <strong>{{ visit.visitor.company }}</strong></p>
+            {% endif %}
+            <p class="mb-3 text-muted">Persona visitada: <strong>{{ visit.person_to_visit }}</strong></p>
+
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-danger btn-lg px-4" id="btn-confirmar-salida"
+                        data-visit-id="{{ visit.id }}">
+                    <i class="bi bi-box-arrow-right"></i> Confirmar Salida
+                </button>
+                <a href="{% url 'visitors:checkout' %}" class="btn btn-outline-secondary btn-lg">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASO 3: Resultado exitoso (se muestra via JS) -->
+    <div id="resultado-checkout" class="card border-0 shadow-sm d-none">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+            <h4 class="fw-bold text-success">¡Salida Registrada!</h4>
+            <p class="fs-5 mb-1" id="res-nombre"></p>
+            <p class="text-muted mb-1">Token: <code id="res-token" class="fw-bold text-danger"></code></p>
+            <p class="text-muted">Hora de salida: <strong id="res-hora"></strong></p>
+            <a href="{% url 'visitors:checkout' %}" class="btn btn-primary mt-3 me-2">
+                <i class="bi bi-qr-code-scan"></i> Nuevo Checkout
+            </a>
+            <a href="{% url 'visitors:dashboard' %}" class="btn btn-success mt-3">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SIEMPRE VISIBLE: Escáner QR + búsqueda manual -->
+    {% if not confirmar %}
+    <div class="row g-4">
+
+        <!-- Escáner QR -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold text-secondary">
+                    <i class="bi bi-qr-code-scan text-primary"></i> Escanear QR
+                </div>
+                <div class="card-body text-center">
+                    <div id="reader" style="width: 100%;"></div>
+                    <p class="text-muted small mt-2">
+                        Apunta la cámara al código QR del gafete del visitante
+                    </p>
+                    <button id="btn-iniciar-camara" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-camera"></i> Iniciar Cámara
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Búsqueda manual por token -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 fw-bold text-secondary">
+                    <i class="bi bi-search text-warning"></i> Buscar por Token
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Si el QR no escanea, ingresa el token manualmente (ej: <code>A1B2C3D4</code>)
+                    </p>
+                    <div class="input-group mt-3">
+                        <input type="text" id="input-token-manual" class="form-control text-uppercase fw-bold"
+                               placeholder="Token del gafete" maxlength="8"
+                               style="letter-spacing: 3px; font-size: 1.1rem;">
+                        <button class="btn btn-warning" id="btn-buscar-token">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                    <div id="error-manual" class="text-danger small mt-2 d-none"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Librería html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Escáner QR ──────────────────────────────────────────────
+    const btnCamara = document.getElementById('btn-iniciar-camara');
+    let scanner = null;
+
+    if (btnCamara) {
+        btnCamara.addEventListener('click', function () {
+            btnCamara.disabled = true;
+            btnCamara.innerHTML = '<i class="bi bi-camera-video"></i> Cámara activa...';
+
+            scanner = new Html5QrcodeScanner("reader", {
+                fps: 10,
+                qrbox: { width: 220, height: 220 },
+                rememberLastUsedCamera: true,
+            }, false);
+
+            scanner.render(
+                function (token) {
+                    // QR escaneado — redirige a confirmación
+                    scanner.clear();
+                    window.location.href = `/visitantes/checkout/${token.trim()}/`;
+                },
+                function (err) {
+                    // Error de escaneo — silencioso
+                }
+            );
+        });
+    }
+
+    // ── Búsqueda manual por token ───────────────────────────────
+    const btnBuscar = document.getElementById('btn-buscar-token');
+    const inputToken = document.getElementById('input-token-manual');
+    const errorManual = document.getElementById('error-manual');
+
+    if (btnBuscar) {
+        btnBuscar.addEventListener('click', buscarToken);
+        inputToken.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') buscarToken();
+        });
+    }
+
+    function buscarToken() {
+        const token = inputToken.value.trim().toUpperCase();
+        if (!token || token.length < 4) {
+            errorManual.textContent = 'Ingresa un token válido (mínimo 4 caracteres).';
+            errorManual.classList.remove('d-none');
+            return;
+        }
+        window.location.href = `/visitantes/checkout/${token}/`;
+    }
+
+    // ── Confirmar checkout via AJAX ─────────────────────────────
+    const btnConfirmar = document.getElementById('btn-confirmar-salida');
+
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', function () {
+            const visitId = this.dataset.visitId;
+            btnConfirmar.disabled = true;
+            btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registrando...';
+
+            fetch(`/visitantes/checkout/confirmar/${visitId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    // Oculta tarjeta de confirmación, muestra resultado
+                    document.querySelector('.card.border-0.shadow-sm.mb-4').classList.add('d-none');
+                    const resultado = document.getElementById('resultado-checkout');
+                    resultado.classList.remove('d-none');
+                    document.getElementById('res-nombre').textContent = data.nombre;
+                    document.getElementById('res-token').textContent = data.token;
+                    document.getElementById('res-hora').textContent = data.exit_time;
+                } else {
+                    alert('Error: ' + data.error);
+                    btnConfirmar.disabled = false;
+                    btnConfirmar.innerHTML = '<i class="bi bi-box-arrow-right"></i> Confirmar Salida';
+                }
+            })
+            .catch(() => {
+                alert('Error de conexión. Intenta de nuevo.');
+                btnConfirmar.disabled = false;
+            });
+        });
+    }
+
+    // ── CSRF helper ─────────────────────────────────────────────
+    function getCookie(name) {
+        let val = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(c => {
+                c = c.trim();
+                if (c.startsWith(name + '=')) val = decodeURIComponent(c.slice(name.length + 1));
+            });
+        }
+        return val;
+    }
+
+});
+</script>
+{% endblock %}

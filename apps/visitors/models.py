@@ -31,7 +31,6 @@ class Visitor(models.Model):
 
 
 class Visit(models.Model):
-    # Motivos de visita separados de los permisos de empleados
     REASON_TYPES = [
         ('visita_general', 'Visita General'),
         ('entrega_proveedor', 'Entrega / Proveedor'),

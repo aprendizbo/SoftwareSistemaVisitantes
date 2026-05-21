@@ -1,10 +1,13 @@
 import base64
 import io
+import json
 import qrcode
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from .forms import VisitorForm, VisitForm
 from .models import Visit, Visitor
 
@@ -17,8 +20,13 @@ def dashboard(request):
     hoy = timezone.now().date()
     visitantes_dia = Visit.objects.filter(entry_time__date=hoy)
 
+    ultimos_movimientos = Visit.objects.filter(
+        entry_time__date=hoy
+    ).select_related('visitor').order_by('-entry_time')[:10]
+
     context = {
         'visitas_activas': visitas_activas,
+        'ultimos_movimientos': ultimos_movimientos,
         'en_instalaciones_count': visitas_activas.count(),
         'visitantes_dia_count': visitantes_dia.count(),
         'entrevistas_count': visitantes_dia.filter(
@@ -110,3 +118,72 @@ def registrar_ingreso(request):
         'visitor_form': VisitorForm(),
         'visit_form': VisitForm(),
     })
+
+
+# ─────────────────────────────────────────────────────────────
+# CHECKOUT
+# ─────────────────────────────────────────────────────────────
+
+def checkout_scanner(request):
+    """Página principal de checkout — muestra escáner QR y búsqueda manual"""
+    return render(request, 'visitors/checkout.html')
+
+
+def checkout_por_token(request, token):
+    """Busca una visita activa por token y muestra sus datos para confirmar checkout"""
+    try:
+        visit = Visit.objects.select_related('visitor').get(
+            token_qr=token.upper(),
+            status='ingresado'
+        )
+        return render(request, 'visitors/checkout.html', {
+            'visit': visit,
+            'confirmar': True,
+        })
+    except Visit.DoesNotExist:
+        return render(request, 'visitors/checkout.html', {
+            'error': f'Token "{token.upper()}" no encontrado o ya registró salida.',
+            'confirmar': False,
+        })
+
+
+@require_POST
+def confirmar_checkout(request, visit_id):
+    """Ejecuta el checkout — cambia estado a salido y registra hora de salida"""
+    try:
+        visit = Visit.objects.select_related('visitor').get(
+            id=visit_id,
+            status='ingresado'
+        )
+        visit.status = 'salido'
+        visit.exit_time = timezone.now()
+        visit.save()
+
+        return JsonResponse({
+            'ok': True,
+            'nombre': f"{visit.visitor.first_name} {visit.visitor.last_name}",
+            'token': visit.token_qr,
+            'exit_time': visit.exit_time.strftime('%H:%M'),
+        })
+    except Visit.DoesNotExist:
+        return JsonResponse(
+            {'ok': False, 'error': 'Visita no encontrada o ya finalizada.'},
+            status=404
+        )
+
+
+# ─────────────────────────────────────────────────────────────
+# NUEVA FUNCIÓN: REGISTRAR SALIDA DESDE TABLA DEL DASHBOARD
+# ─────────────────────────────────────────────────────────────
+
+def registrar_salida(request, visita_id):
+    """Procesa la salida inmediata desde el botón del Panel Principal"""
+    if request.method == 'POST':
+        visit = get_object_or_404(Visit, id=visita_id, status='ingresado')
+        visit.status = 'salido'
+        visit.exit_time = timezone.now()
+        visit.save()
+        
+        messages.success(request, f"Salida registrada exitosamente para {visit.visitor.first_name} {visit.visitor.last_name}.")
+        
+    return redirect('visitors:dashboard')

@@ -3,16 +3,30 @@ from .models import Visitor, Visit
 
 
 class VisitorForm(forms.ModelForm):
+    # Declaramos el campo explícitamente para que la plantilla HTML lo dibuje normal con sus opciones originales
+    visitor_type = forms.ChoiceField(
+        choices=[
+            ('', '---------'),
+            ('entrevistado', 'Entrevistado'),
+            ('proveedor', 'Proveedor'),
+            ('visitante_externo', 'Visitante Externo'),
+            ('contratista', 'Contratista'),
+            ('permiso_empleado', 'Permiso de Empleado'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Tipo ingreso/salida'
+    )
+
     class Meta:
         model = Visitor
-        fields = ['document_type', 'document_id', 'first_name', 'last_name', 'company', 'visitor_type']
+        # Excluimos 'visitor_type' de los fields del modelo para evitar que salte su validador estricto de BD
+        fields = ['document_type', 'document_id', 'first_name', 'last_name', 'company']
         labels = {
             'document_type': 'Tipo de Documento',
             'document_id': 'Número de Documento',
             'first_name': 'Nombre',
             'last_name': 'Apellido',
             'company': 'Empresa',
-            'visitor_type': 'Tipo de Visitante',
         }
         widgets = {
             'document_type': forms.Select(attrs={'class': 'form-select'}),
@@ -32,8 +46,23 @@ class VisitorForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Empresa (Opcional)'
             }),
-            'visitor_type': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Forzamos las opciones personalizadas en tiempo de ejecución para desvincular la validación del modelo
+        self.fields['visitor_type'].choices = [
+            ('', '---------'),
+            ('entrevistado', 'Entrevistado'),
+            ('proveedor', 'Proveedor'),
+            ('visitante_externo', 'Visitante Externo'),
+            ('contratista', 'Contratista'),
+            ('permiso_empleado', 'Permiso de Empleado'),
+        ]
+
+    # Interceptamos la limpieza del campo para obligar a Django a aceptar "permiso_empleado" como un string válido
+    def clean_visitor_type(self):
+        return self.cleaned_data.get('visitor_type')
 
 
 class VisitForm(forms.ModelForm):
@@ -41,9 +70,9 @@ class VisitForm(forms.ModelForm):
         model = Visit
         fields = ['reason_type', 'reason_detail', 'person_to_visit', 'area']
         labels = {
-            'reason_type': 'Motivo de Visita',
+            'reason_type': 'Motivo',
             'reason_detail': 'Detalle Adicional',
-            'person_to_visit': 'Persona a Visitar',
+            'person_to_visit': 'Responsable',
             'area': 'Área de Destino',
         }
         widgets = {
@@ -55,7 +84,7 @@ class VisitForm(forms.ModelForm):
             }),
             'person_to_visit': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nombre de la persona a visitar'
+                'placeholder': 'Nombre del responsable'
             }),
             'area': forms.TextInput(attrs={
                 'class': 'form-control',

@@ -13,14 +13,12 @@
 
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Registrar Ingreso de Visitante</h4>
-        </div>
+            <h4 class="mb-0">Registrar Ingreso/Salida</h4>  </div>
         <div class="card-body">
             <form method="POST" action="{% url 'visitors:registrar_ingreso' %}" enctype="multipart/form-data" id="form-registro">
                 {% csrf_token %}
 
                 <div class="row">
-                    <!-- Datos Personales -->
                     <div class="col-md-6">
                         <h5 class="mb-3 text-secondary border-bottom pb-2">
                             <i class="bi bi-person-fill"></i> Datos Personales
@@ -64,23 +62,19 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Tipo de Visitante</label>
-                            {{ visitor_form.visitor_type }}
+                            <label class="form-label fw-semibold">Tipo ingreso/salida</label>  {{ visitor_form.visitor_type }}
                             {% if visitor_form.visitor_type.errors %}
                                 <div class="text-danger small">{{ visitor_form.visitor_type.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
 
-                    <!-- Detalles de la Visita -->
                     <div class="col-md-6">
                         <h5 class="mb-3 text-secondary border-bottom pb-2">
-                            <i class="bi bi-clipboard-fill"></i> Detalles de la Visita
-                        </h5>
+                            <i class="bi bi-clipboard-fill"></i> Detalles del Registro  </h5>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Motivo de Visita</label>
-                            {{ visit_form.reason_type }}
+                            <label class="form-label fw-semibold">Motivo</label>  {{ visit_form.reason_type }}
                             {% if visit_form.reason_type.errors %}
                                 <div class="text-danger small">{{ visit_form.reason_type.errors }}</div>
                             {% endif %}
@@ -92,7 +86,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Persona a Visitar</label>
+                            <label class="form-label fw-semibold">Responsable</label>
                             {{ visit_form.person_to_visit }}
                             {% if visit_form.person_to_visit.errors %}
                                 <div class="text-danger small">{{ visit_form.person_to_visit.errors }}</div>
@@ -111,11 +105,9 @@
 
                 <hr>
 
-                <!-- Fotografía -->
                 <div class="text-center mb-4">
                     <h5 class="text-secondary border-bottom pb-2">
-                        <i class="bi bi-camera-fill"></i> Fotografía del Visitante
-                    </h5>
+                        <i class="bi bi-camera-fill"></i> Fotografía de Identificación  </h5>
                     <video id="webcam" width="320" height="240" autoplay playsinline
                            class="border rounded bg-dark d-block mx-auto"></video>
                     <br>
@@ -132,14 +124,12 @@
                 </div>
 
                 <button type="submit" class="btn btn-success w-100 btn-lg">
-                    <i class="bi bi-person-check-fill"></i> Registrar Ingreso
-                </button>
+                    <i class="bi bi-arrow-left-right"></i> Registrar Ingreso/Salida  </button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal QR — se activa automáticamente cuando el registro es exitoso -->
 {% if qr_base64 %}
 <div class="modal fade" id="qrModal" data-bs-backdrop="static" data-bs-keyboard="false"
      tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
@@ -147,13 +137,11 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="qrModalLabel">
-                    <i class="bi bi-check-circle-fill"></i> ¡Ingreso Registrado con Éxito!
-                </h5>
+                    <i class="bi bi-check-circle-fill"></i> ¡Registro Procesado con Éxito!  </h5>
             </div>
             <div class="modal-body text-center py-4">
                 <p class="fs-5 mb-1">
-                    Visitante: <strong>{{ v_exitosa.visitor.first_name }} {{ v_exitosa.visitor.last_name }}</strong>
-                </p>
+                    Persona: <strong>{{ v_exitosa.visitor.first_name }} {{ v_exitosa.visitor.last_name }}</strong>  </p>
                 <p class="mb-1">
                     Tipo: <span class="badge bg-secondary">{{ v_exitosa.visitor.get_visitor_type_display }}</span>
                 </p>
@@ -162,15 +150,13 @@
                 </p>
                 <p class="mb-1 text-muted">Área: <strong>{{ v_exitosa.area }}</strong></p>
                 <p class="mb-3 text-muted">
-                    Hora de entrada: <strong>{{ v_exitosa.entry_time|time:"H:i" }}</strong>
-                </p>
+                    Hora de registro: <strong>{{ v_exitosa.entry_time|time:"H:i" }}</strong>  </p>
 
                 <div class="p-3 border rounded d-inline-block bg-light mb-2">
                     <img src="data:image/png;base64,{{ qr_base64 }}"
                          alt="Código QR" class="img-fluid" style="max-width: 200px;">
                 </div>
-                <p class="text-muted small">Escanea este código para registrar la salida del visitante.</p>
-            </div>
+                <p class="text-muted small">Escanea este código para registrar el próximo movimiento en el sistema.</p>  </div>
             <div class="modal-footer justify-content-center gap-2">
                 <button type="button" class="btn btn-primary" onclick="imprimirGafete()">
                     <i class="bi bi-printer-fill"></i> Imprimir Gafete
@@ -183,7 +169,6 @@
     </div>
 </div>
 
-<!-- Área de impresión del gafete — solo visible al imprimir -->
 <div id="area-impresion" style="display:none;">
     <div style="width: 300px; border: 2px solid #000; padding: 16px; font-family: Arial, sans-serif; text-align: center; margin: auto;">
         <h3 style="margin: 0 0 4px 0; font-size: 14px;">BOCCHERINI S.A.S</h3>
@@ -195,13 +180,10 @@
             Tipo: {{ v_exitosa.visitor.get_visitor_type_display }}
         </p>
         <p style="font-size: 13px; margin: 4px 0;">
-            Estado: <strong>EN INSTALACIONES</strong>
-        </p>
-        <p style="font-size: 13px; margin: 4px 0;">
             Token: <strong>{{ v_exitosa.token_qr }}</strong>
         </p>
         <p style="font-size: 12px; margin: 4px 0; color: #555;">
-            Hora entrada: {{ v_exitosa.entry_time|time:"H:i" }}
+            Hora registro: {{ v_exitosa.entry_time|time:"H:i" }}
         </p>
         <div style="margin-top: 10px;">
             <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR" style="width: 120px; height: 120px;">
@@ -247,7 +229,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // ─── Abrir modal QR automáticamente si hay QR generado ────
     const modalElement = document.getElementById('qrModal');
     if (modalElement) {
-        // Pequeño delay para que Bootstrap cargue correctamente
         setTimeout(() => {
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
@@ -256,7 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-// ─── Impresión del gafete ─────────────────────────────────────
 function imprimirGafete() {
     const areaImpresion = document.getElementById('area-impresion');
     if (!areaImpresion) return;
@@ -281,7 +261,6 @@ function imprimirGafete() {
 }
 </script>
 
-<!-- Estilos de impresión — oculta todo excepto el gafete -->
 <style>
 @media print {
     body * { visibility: hidden; }

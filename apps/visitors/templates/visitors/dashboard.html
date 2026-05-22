@@ -73,10 +73,10 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-secondary">
-                        <i class="bi bi-activity text-primary"></i> Visitantes en Instalaciones
+                        <i class="bi bi-activity text-primary"></i> Personal en Instalaciones y Salidas Activas
                     </h5>
                     <a href="{% url 'visitors:registrar_ingreso' %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-person-plus-fill"></i> Registrar Ingreso
+                        <i class="bi bi-person-plus-fill"></i> Registrar Ingreso / Salida Empleado
                     </a>
                 </div>
                 <div class="card-body p-0">
@@ -86,8 +86,8 @@
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Tipo</th>
-                                    <th>Empresa</th>
-                                    <th>Hora Entrada</th>
+                                    <th>Empresa / Área</th>
+                                    <th>Hora Evento</th>
                                     <th>Token</th>
                                     <th>Estado</th>
                                     <th class="text-center">Acciones</th>
@@ -97,30 +97,57 @@
                                 {% for visita in visitas_activas %}
                                 <tr>
                                     <td class="fw-bold">
-                                        {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                        {% if visita.is_employee_mock %}
+                                            {{ visita.visitor.first_name }}
+                                        {% else %}
+                                            {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">
-                                            {{ visita.visitor.get_visitor_type_display }}
+                                        <span class="badge {% if visita.is_employee_mock %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                                            {% if visita.is_employee_mock %}
+                                                {{ visita.visitor.get_visitor_type_display }}
+                                            {% else %}
+                                                {{ visita.visitor.get_visitor_type_display }}
+                                            {% endif %}
                                         </span>
                                     </td>
-                                    <td>{{ visita.visitor.company|default:"—" }}</td>
+                                    <td>
+                                        {% if visita.is_employee_mock %}
+                                            <span class="text-muted small">Área:</span> {{ visita.area|default:"—" }}
+                                        {% else %}
+                                            {{ visita.visitor.company|default:"—" }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ visita.entry_time|time:"H:i" }}</td>
                                     <td>
                                         <code class="text-danger fw-bold">{{ visita.token_qr }}</code>
                                     </td>
                                     <td>
+                                        {% if visita.is_employee_mock %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-person-go-out" style="font-size: 10px;"></i>
+                                            En permiso
+                                        </span>
+                                        {% else %}
                                         <span class="badge bg-success">
                                             <i class="bi bi-circle-fill" style="font-size: 8px;"></i>
                                             En instalaciones
                                         </span>
+                                        {% endif %}
                                     </td>
                                     <td class="text-center">
                                         <form action="{% url 'visitors:registrar_salida' visita.id %}" method="POST" class="d-inline">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="return confirm('¿Confirmar salida de este visitante?');">
-                                                <i class="bi bi-door-closed-fill"></i> Salida
-                                            </button>
+                                            {% if visita.is_employee_mock %}
+                                                <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2" onclick="return confirm('¿Confirmar re-ingreso de este empleado?');">
+                                                    <i class="bi bi-box-arrow-in-right"></i> Re-ingreso
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="return confirm('¿Confirmar salida de este visitante?');">
+                                                    <i class="bi bi-door-closed-fill"></i> Salida
+                                                </button>
+                                            {% endif %}
                                         </form>
                                     </td>
                                 </tr>
@@ -128,7 +155,7 @@
                                 <tr>
                                     <td colspan="7" class="text-center text-muted py-5">
                                         <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                        No hay visitantes dentro del establecimiento.
+                                        No hay visitantes ni permisos activos registrados.
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -153,17 +180,40 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong class="d-block">
-                                        {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                        {% if visita.is_employee_mock %}
+                                            {{ visita.visitor.first_name }}
+                                        {% else %}
+                                            {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                        {% endif %}
                                     </strong>
                                     <small class="text-muted">
                                         {{ visita.visitor.get_visitor_type_display }}
                                     </small>
                                 </div>
                                 <div class="text-end">
-                                    <span class="badge {% if visita.status == 'ingresado' %}bg-success{% else %}bg-secondary{% endif %} rounded-pill d-block mb-1">
-                                        {% if visita.status == 'ingresado' %}Dentro{% else %}Salió{% endif %}
-                                    </span>
-                                    <small class="text-muted">{{ visita.entry_time|time:"H:i" }}</small>
+                                    {% if visita.is_employee_mock %}
+                                        <span class="badge {% if visita.status == 'ACTIVO' %}bg-warning text-dark{% else %}bg-secondary{% endif %} rounded-pill d-block mb-1">
+                                            {% if visita.status == 'ACTIVO' %}Permiso{% else %}Retornó{% endif %}
+                                        </span>
+                                        <small class="text-muted">
+                                            {% if visita.status == 'ACTIVO' %}
+                                                Out: {{ visita.entry_time|time:"H:i" }}
+                                            {% else %}
+                                                In: {{ visita.exit_time|time:"H:i" }}
+                                            {% endif %}
+                                        </small>
+                                    {% else %}
+                                        <span class="badge {% if visita.status|lower == 'ingresado' %}bg-success{% else %}bg-secondary{% endif %} rounded-pill d-block mb-1">
+                                            {% if visita.status|lower == 'ingresado' %}Dentro{% else %}Salió{% endif %}
+                                        </span>
+                                        <small class="text-muted">
+                                            {% if visita.status|lower == 'ingresado' %}
+                                                In: {{ visita.entry_time|time:"H:i" }}
+                                            {% else %}
+                                                Out: {{ visita.exit_time|time:"H:i" }}
+                                            {% endif %}
+                                        </small>
+                                    {% endif %}
                                 </div>
                             </div>
                         </li>

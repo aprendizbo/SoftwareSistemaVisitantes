@@ -19,7 +19,7 @@ class Visitor(models.Model):
     last_name = models.CharField(max_length=100, verbose_name='Apellido')
     document_type = models.CharField(max_length=50, choices=TIPO_DOC, verbose_name='Tipo de Documento')
     document_id = models.CharField(max_length=50, unique=True, verbose_name='Número de Documento')
-    visitor_type = models.CharField(max_length=50, choices=TIPO_VIS, verbose_name='Tipo de Visitante')
+    visitor_type = models.CharField(max_length=50, choices=TIPO_VIS, verbose_name='Tipo ingreso/salida')  # ← Actualizado
     company = models.CharField(max_length=100, blank=True, null=True, verbose_name='Empresa')
 
     class Meta:
@@ -47,7 +47,7 @@ class Visit(models.Model):
     visitor = models.ForeignKey(Visitor, on_delete=models.CASCADE, verbose_name='Visitante')
     reason_type = models.CharField(
         max_length=100, choices=REASON_TYPES,
-        blank=True, null=True, verbose_name='Motivo de Visita'
+        blank=True, null=True, verbose_name='Motivo'  # ← Actualizado
     )
     person_to_visit = models.CharField(max_length=100, verbose_name='Persona a Visitar')
     reason_detail = models.TextField(blank=True, null=True, verbose_name='Detalle Adicional')

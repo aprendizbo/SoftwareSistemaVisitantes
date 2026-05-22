@@ -1,0 +1,556 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Historial y Reportes{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- ══════════════════════════════════════
+       ENCABEZADO
+  ══════════════════════════════════════ -->
+  <div class="reports-header">
+    <div>
+      <h1 class="reports-title">Historial y Reportes</h1>
+      <p class="reports-subtitle">Consulta, filtra y exporta todos los registros del sistema</p>
+    </div>
+    <div class="export-btns">
+      <a href="{% url 'reports:exportar_excel' %}?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+         class="btn-export btn-excel">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        Exportar Excel
+      </a>
+      <a href="{% url 'reports:exportar_pdf' %}?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+         class="btn-export btn-pdf">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        Exportar PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TABS
+  ══════════════════════════════════════ -->
+  <div class="tabs-bar">
+    <a href="?tab=proveedores&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+       class="tab-btn {% if tab == 'proveedores' %}active{% endif %}">
+      🏢 Proveedores & Contratistas
+    </a>
+    <a href="?tab=entrevistados&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+       class="tab-btn {% if tab == 'entrevistados' %}active{% endif %}">
+      🎯 Entrevistados
+    </a>
+    <a href="?tab=permisos&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+       class="tab-btn {% if tab == 'permisos' %}active{% endif %}">
+      🔑 Permisos Laborales
+    </a>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       FILTROS
+  ══════════════════════════════════════ -->
+  <div class="filters-card">
+    <form method="GET" class="filters-form" id="filters-form">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <input type="hidden" name="page" value="1">
+
+      <div class="filter-group">
+        <label for="q">🔍 Buscar</label>
+        <input type="text" id="q" name="q" value="{{ busqueda }}"
+               placeholder="Nombre, cédula, empresa…" class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label for="fecha_inicio">📅 Desde</label>
+        <input type="date" id="fecha_inicio" name="fecha_inicio"
+               value="{{ fecha_inicio }}" class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label for="fecha_fin">📅 Hasta</label>
+        <input type="date" id="fecha_fin" name="fecha_fin"
+               value="{{ fecha_fin }}" class="filter-input">
+      </div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn-filtrar">Filtrar</button>
+        <a href="?tab={{ tab }}" class="btn-limpiar">Limpiar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="results-count">
+    <span class="badge-total">{{ total }} registro{{ total|pluralize }}</span>
+    {% if busqueda or fecha_inicio or fecha_fin %}
+      <span class="filter-active-label">— con filtros aplicados</span>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TABLA: PROVEEDORES & CONTRATISTAS
+  ══════════════════════════════════════ -->
+  {% if tab == 'proveedores' %}
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Responsable</th>
+            <th>Empresa</th>
+            <th>Cédula</th>
+            <th>Tipo Doc.</th>
+            <th>Tipo</th>
+            <th>Ingreso</th>
+            <th>Salida</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registros %}
+          <tr>
+            <td>{{ r.nombre|truncatechars:20 }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.responsable }}</td>
+            <td>{{ r.empresa }}</td>
+            <td class="mono">{{ r.cedula }}</td>
+            <td>{{ r.tipo_doc }}</td>
+            <td><span class="badge badge-tipo">{{ r.tipo }}</span></td>
+            <td class="mono">{{ r.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+            <td class="mono">
+              {% if r.fecha_salida %}
+                {{ r.fecha_salida|date:"d/m/Y H:i" }}
+              {% else %}
+                <span class="en-instalaciones">En instalaciones</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.estado == 'salido' %}
+                <span class="badge badge-salido">Salido</span>
+              {% else %}
+                <span class="badge badge-activo">Activo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="empty-row">No se encontraron registros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TABLA: ENTREVISTADOS
+  ══════════════════════════════════════ -->
+  {% elif tab == 'entrevistados' %}
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Tipo Documento</th>
+            <th>Cédula</th>
+            <th>Fecha Ingreso</th>
+            <th>Fecha Salida</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registros %}
+          <tr>
+            {% with partes=r.nombre.split %}
+            <td>{{ partes.0 }}</td>
+            <td>{% if partes|length > 1 %}{{ partes.1 }}{% else %}—{% endif %}</td>
+            {% endwith %}
+            <td>{{ r.tipo_doc }}</td>
+            <td class="mono">{{ r.cedula }}</td>
+            <td class="mono">{{ r.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+            <td class="mono">
+              {% if r.fecha_salida %}
+                {{ r.fecha_salida|date:"d/m/Y H:i" }}
+              {% else %}
+                <span class="en-instalaciones">En instalaciones</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.estado == 'salido' %}
+                <span class="badge badge-salido">Salido</span>
+              {% else %}
+                <span class="badge badge-activo">Activo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="empty-row">No se encontraron registros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TABLA: PERMISOS LABORALES
+  ══════════════════════════════════════ -->
+  {% else %}
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Tipo Documento</th>
+            <th>Cédula</th>
+            <th>Responsable</th>
+            <th>Fecha Salida</th>
+            <th>Fecha Retorno</th>
+            <th>Área</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registros %}
+          <tr>
+            {% with partes=r.nombre.split %}
+            <td>{{ partes.0 }}</td>
+            <td>{% if partes|length > 1 %}{{ partes.1 }}{% else %}—{% endif %}</td>
+            {% endwith %}
+            <td>{{ r.tipo_doc }}</td>
+            <td class="mono">{{ r.cedula }}</td>
+            <td>{{ r.responsable }}</td>
+            <td class="mono">{{ r.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+            <td class="mono">
+              {% if r.fecha_salida %}
+                {{ r.fecha_salida|date:"d/m/Y H:i" }}
+              {% else %}
+                <span class="en-instalaciones">Activo</span>
+              {% endif %}
+            </td>
+            <td><span class="badge badge-area">{{ r.area }}</span></td>
+            <td>
+              {% if r.estado == 'FINALIZADO' %}
+                <span class="badge badge-salido">Finalizado</span>
+              {% else %}
+                <span class="badge badge-activo">Activo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="empty-row">No se encontraron registros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════
+       PAGINACIÓN
+  ══════════════════════════════════════ -->
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-bar">
+    <div class="page-info">
+      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      &nbsp;·&nbsp; {{ total }} registros en total
+    </div>
+    <div class="page-btns">
+      {% if page_obj.has_previous %}
+        <a href="?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&page=1"
+           class="page-btn">« Primera</a>
+        <a href="?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&page={{ page_obj.previous_page_number }}"
+           class="page-btn">‹ Anterior</a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="page-btn current">{{ num }}</span>
+        {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+          <a href="?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&page={{ num }}"
+             class="page-btn">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&page={{ page_obj.next_page_number }}"
+           class="page-btn">Siguiente ›</a>
+        <a href="?tab={{ tab }}&q={{ busqueda }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&page={{ page_obj.paginator.num_pages }}"
+           class="page-btn">Última »</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /reports-container -->
+
+
+<!-- ══════════════════════════════════════
+     ESTILOS (van al final del bloque o en un bloque CSS propio)
+══════════════════════════════════════ -->
+<style>
+/* ── Contenedor principal ── */
+.reports-container {
+  padding: 28px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Encabezado ── */
+.reports-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.reports-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0 0 4px;
+}
+.reports-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Botones de exportación ── */
+.export-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-export:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.btn-excel  { background: #217346; color: #fff; }
+.btn-pdf    { background: #c0392b; color: #fff; }
+
+/* ── Tabs ── */
+.tabs-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
+}
+.tab-btn {
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-bottom: none;
+  transition: color 0.2s, background 0.2s;
+  margin-bottom: -2px;
+}
+.tab-btn:hover { color: #1e3a5f; background: #f3f6ff; }
+.tab-btn.active {
+  color: #1e3a5f;
+  background: #fff;
+  border-color: #e5e7eb;
+  border-bottom-color: #fff;
+}
+
+/* ── Filtros ── */
+.filters-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.filters-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 180px;
+}
+.filter-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+.filter-input {
+  padding: 9px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #f9fafb;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.filter-input:focus { border-color: #1e3a5f; background: #fff; }
+.filter-actions { display: flex; gap: 8px; align-items: flex-end; }
+.btn-filtrar {
+  padding: 9px 22px;
+  background: #1e3a5f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-filtrar:hover { background: #16304f; }
+.btn-limpiar {
+  padding: 9px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.btn-limpiar:hover { background: #e5e7eb; }
+
+/* ── Contador ── */
+.results-count {
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+.badge-total {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.filter-active-label { color: #9ca3af; margin-left: 4px; }
+
+/* ── Tabla ── */
+.table-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  margin-bottom: 20px;
+}
+.table-responsive { overflow-x: auto; }
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.report-table thead tr {
+  background: #1e3a5f;
+  color: #fff;
+}
+.report-table th {
+  padding: 13px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.report-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f1f3f5;
+  color: #374151;
+  vertical-align: middle;
+}
+.report-table tbody tr:last-child td { border-bottom: none; }
+.report-table tbody tr:hover { background: #f8faff; }
+.report-table tbody tr:nth-child(even) { background: #fafbff; }
+.report-table tbody tr:nth-child(even):hover { background: #f0f4ff; }
+
+.mono { font-family: 'Courier New', monospace; font-size: 0.82rem; }
+.empty-row { text-align: center; color: #9ca3af; padding: 40px 0; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-activo     { background: #d1fae5; color: #065f46; }
+.badge-salido     { background: #fee2e2; color: #991b1b; }
+.badge-tipo       { background: #e0e7ff; color: #3730a3; }
+.badge-area       { background: #fef3c7; color: #92400e; }
+.en-instalaciones { color: #2563eb; font-weight: 600; font-size: 0.8rem; }
+
+/* ── Paginación ── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+.page-info { font-size: 0.875rem; color: #6b7280; }
+.page-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.page-btn {
+  padding: 7px 13px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  background: #fff;
+  transition: all 0.15s;
+}
+.page-btn:hover { border-color: #1e3a5f; color: #1e3a5f; background: #f0f4ff; }
+.page-btn.current {
+  background: #1e3a5f;
+  color: #fff;
+  border-color: #1e3a5f;
+  cursor: default;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .reports-container { padding: 16px; }
+  .reports-header { flex-direction: column; align-items: flex-start; }
+  .filters-form { flex-direction: column; }
+  .filter-group { min-width: 100%; }
+  .tabs-bar { overflow-x: auto; }
+}
+</style>
+{% endblock %}

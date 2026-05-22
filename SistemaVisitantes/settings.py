@@ -56,7 +56,11 @@ ROOT_URLCONF = 'SistemaVisitantes.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'SistemaVisitantes' / 'templates'],
+        'DIRS': [
+            BASE_DIR / 'SistemaVisitantes' / 'templates',
+            BASE_DIR / 'templates',  # Por si tienes una carpeta raíz de templates globales
+            BASE_DIR / 'apps' / 'dashboard' / 'templates', # Mapeo directo de seguridad para el módulo central
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -123,3 +127,16 @@ LOGOUT_REDIRECT_URL = 'login'
 # DEFAULT PRIMARY KEY
 # =========================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# settings.py
+
+# Si usas una cuenta SMTP real para enviar correos:
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tu_correo_emisor@boccherini.com.co'  # El correo que envía las alertas
+EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'      # Contraseña de aplicación generada en Google
+
+DEFAULT_FROM_EMAIL = f"Sistema Control Accesos <{EMAIL_HOST_USER}>"
+CORREO_GESTION_HUMANA = 'practicante.ti@boccherini.com.co'  # La cuenta de la captura donde quieres recibirlo

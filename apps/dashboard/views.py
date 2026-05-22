@@ -19,7 +19,7 @@ def dashboard(request):
     ).select_related('visitor')
 
     # Entrevistados hoy
-    entrevistados_hoy = visitas_hoy.filter(
+    entrevistas_hoy = visitas_hoy.filter(
         visitor__visitor_type='entrevistado'
     ).count()
 
@@ -36,11 +36,11 @@ def dashboard(request):
     ).select_related('employee')
 
     context = {
-        # Visitantes
-        'visitantes_dentro': visitantes_dentro,
+        # Visitantes (Sincronizado con las variables que requiere el HTML)
+        'visitas_activas': visitantes_dentro,  # Cambiado para que el HTML recorra la tabla correctamente
         'en_instalaciones_count': visitantes_dentro.count(),
         'visitantes_dia_count': visitas_hoy.count(),
-        'entrevistas_count': entrevistados_hoy,
+        'entrevistas_count': entrevistas_hoy,
         'ultimos_movimientos': ultimos_movimientos,
 
         # Empleados
@@ -48,4 +48,4 @@ def dashboard(request):
         'permisos_count': permisos_activos.count(),
     }
 
-    return render(request, 'dashboard/dashboard.html', context)
+    return render(request, 'visitors/dashboard.html', context)

@@ -14,6 +14,7 @@ class Employee(models.Model):
         verbose_name = "Empleado"
         verbose_name_plural = "Empleados"
 
+
 class EmployeePermission(models.Model):
     PERMIT_TYPES = [
         ('LABORAL', 'Laboral'),
@@ -26,6 +27,7 @@ class EmployeePermission(models.Model):
     permit_type = models.CharField(max_length=20, choices=PERMIT_TYPES, verbose_name="Tipo de Permiso")
     departure_time = models.DateTimeField(auto_now_add=True, verbose_name="Hora de Salida")
     return_time = models.DateTimeField(null=True, blank=True, verbose_name="Hora de Regreso")
+    token_qr = models.CharField(max_length=8, unique=True, editable=False, blank=True, verbose_name='Token QR')  # ← Agregado para el flujo unificado
     status = models.CharField(max_length=20, default='ACTIVO', verbose_name="Estado")
 
     def __str__(self):
@@ -34,3 +36,8 @@ class EmployeePermission(models.Model):
     class Meta:
         verbose_name = "Permiso de Empleado"
         verbose_name_plural = "Permisos de Empleados"
+
+    def save(self, *args, **kwargs):
+        if not self.token_qr:
+            self.token_qr = uuid.uuid4().hex[:8].upper()
+        super().save(*args, **kwargs)

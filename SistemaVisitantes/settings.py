@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # APPS DEL PROYECTO (Asegúrate de que en apps.py tengan el name='apps.nombre')
+    # APPS DEL PROYECTO
     'apps.accounts',
     'apps.visitors',
     'apps.employees',
@@ -56,11 +56,7 @@ ROOT_URLCONF = 'SistemaVisitantes.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'SistemaVisitantes' / 'templates',
-            BASE_DIR / 'templates',  # Por si tienes una carpeta raíz de templates globales
-            BASE_DIR / 'apps' / 'dashboard' / 'templates', # Mapeo directo de seguridad para el módulo central
-        ],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -117,26 +113,30 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # =========================================================
-# AUTH REDIRECTS
-# =========================================================
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
-
-# =========================================================
 # DEFAULT PRIMARY KEY
 # =========================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# settings.py
-
-# Si usas una cuenta SMTP real para enviar correos:
+# =========================================================
+# EMAIL CONFIGURATION (Notificaciones Alertas)
+# =========================================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'tu_correo_emisor@boccherini.com.co'  # El correo que envía las alertas
-EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'      # Contraseña de aplicación generada en Google
+EMAIL_HOST_USER = 'tu_correo_emisor@boccherini.com.co'
+EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'
 
 DEFAULT_FROM_EMAIL = f"Sistema Control Accesos <{EMAIL_HOST_USER}>"
-CORREO_GESTION_HUMANA = 'practicante.ti@boccherini.com.co'  # La cuenta de la captura donde quieres recibirlo
+CORREO_GESTION_HUMANA = 'practicante.ti@boccherini.com.co'
+
+# =========================================================
+# AUTHENTICATION REDIRECTS (Control de accesos global)
+# =========================================================
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard:dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+# CONFIGURACIÓN DE REDIRECCIÓN DE SEGURIDAD
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'

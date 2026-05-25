@@ -11,64 +11,15 @@ from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 from django.conf import settings
 
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
+
 from .forms import VisitorForm, VisitForm
 from .models import Visit, Visitor
 from apps.employees.models import Employee, EmployeePermission
 
-
-def dashboard(request):
-    hoy = timezone.now().date()
-    
-    # 1. Traer visitas de visitantes activos nativos
-    visitas_activas_queryset = Visit.objects.filter(
-        status='ingresado'
-    ).select_related('visitor').order_by('-entry_time')
-    
-    visitas_activas = list(visitas_activas_queryset)
-
-    # 2. Traer permisos de empleados activos
-    permisos_activos = EmployeePermission.objects.filter(
-        status='ACTIVO',
-        departure_time__date=hoy
-    ).select_related('employee')
-
-    for p in permisos_activos:
-        visitas_activas.append({
-            'id': p.id,
-            'is_employee_mock': True,
-            'status': 'ACTIVO',
-            'visitor': {
-                'first_name': p.employee.name,
-                'last_name': '',
-                'get_visitor_type_display': 'Permiso de Empleado'
-            },
-            'area': p.employee.area,
-            'entry_time': p.departure_time,
-            'token_qr': p.token_qr
-        })
-
-    visitas_activas.sort(key=lambda x: x.entry_time if isinstance(x, Visit) else x['entry_time'], reverse=True)
-
-    # 3. Historial de Últimos Movimientos
-    # Filtramos solo registros finalizados para evitar duplicidad
-    visitas_salidas = Visit.objects.filter(status='salido').order_by('-exit_time')[:10]
-    permisos_finalizados = EmployeePermission.objects.filter(status='FINALIZADO').order_by('-return_time')[:10]
-    
-    # Consolidamos y ordenamos
-    ultimos_movimientos = list(visitas_salidas) + list(permisos_finalizados)
-    ultimos_movimientos.sort(key=lambda x: x.exit_time if hasattr(x, 'exit_time') else x.return_time, reverse=True)
-
-    context = {
-        'visitas_activas': visitas_activas,
-        'ultimos_movimientos': ultimos_movimientos[:10],
-        'en_instalaciones_count': visitas_activas_queryset.count(),
-        'visitantes_dia_count': Visit.objects.filter(entry_time__date=hoy).count(),
-        'entrevistas_count': Visit.objects.filter(visitor__visitor_type='entrevistado').count(),
-        'permisos_count': permisos_activos.count(),
-    }
-    return render(request, 'visitors/dashboard.html', context)
-
-
+@login_required
 def registrar_ingreso(request):
     if request.method == 'POST':
         post_data = request.POST.copy()
@@ -116,7 +67,15 @@ def registrar_ingreso(request):
                 qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
                 visit_mock = {
-                    'visitor': {'first_name': empleado.name, 'last_name': '', 'get_visitor_type_display': 'Permiso de Empleado'},
+                    'id': permiso.id,
+                    'is_employee_mock': True,
+                    'visitor': {
+                        'first_name': empleado.name, 
+                        'last_name': '', 
+                        'visitor_type': 'permiso_empleado',
+                        'get_visitor_type_display': 'Permiso de Empleado',
+                        'company': 'PERSONAL INTERNO'
+                    },
                     'token_qr': permiso.token_qr,
                     'area': empleado.area,
                     'entry_time': permiso.departure_time,
@@ -156,28 +115,15 @@ def registrar_ingreso(request):
                 visit.status = 'ingresado'
                 visit.save()
 
-                # NOTIFICACIÓN AUTOMÁTICA MEJORADA
                 if tipo_ingreso == 'entrevistado':
                     try:
                         asunto = f"🔔 Candidato en Recepción: {visitor_db.first_name} {visitor_db.last_name}"
                         mensaje_correo = (
                             f"Estimado equipo de Gestión Humana,\n\n"
-                            f"Se informa que ha ingresado un candidato a las instalaciones para entrevista.\n\n"
-                            f"📌 Datos del Entrevistado:\n"
-                            f"• Nombre Completo: {visitor_db.first_name} {visitor_db.last_name}\n"
-                            f"• Documento: {visitor_db.document_type} - {visitor_db.document_id}\n"
-                            f"• Hora de Ingreso: {visit.entry_time.astimezone(timezone.get_current_timezone()).strftime('%I:%M %p')}\n"
-                            f"• Persona a la que visita: {visit.person_to_visit}\n\n"
-                            f"Por favor, acercase a la entrada para atender la visita.\n\n"
+                            f"Se informa que ha ingresado un candidato a las instalaciones.\n\n"
                             f"Atentamente,\nSistema de Control de Accesos."
                         )
-                        send_mail(
-                            subject=asunto,
-                            message=mensaje_correo,
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[settings.CORREO_GESTION_HUMANA],
-                            fail_silently=False, # Cambiado a False temporalmente para ver errores explícitos en consola
-                        )
+                        send_mail(asunto, mensaje_correo, settings.DEFAULT_FROM_EMAIL, [settings.CORREO_GESTION_HUMANA], fail_silently=False)
                     except Exception:
                         pass
 
@@ -185,15 +131,11 @@ def registrar_ingreso(request):
                 if photo_data and 'base64,' in photo_data:
                     try:
                         fmt, imgstr = photo_data.split(';base64,')
-                        visit.photo.save(
-                            f"visita_{visit.id}.jpg",
-                            ContentFile(base64.b64decode(imgstr)),
-                            save=True
-                        )
+                        visit.photo.save(f"visita_{visit.id}.jpg", ContentFile(base64.b64decode(imgstr)), save=True)
                     except Exception:
                         pass
 
-                qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=8, border=4)
+                qr = qrcode.QRCode(version=1, box_size=8, border=4)
                 qr.add_data(visit.token_qr)
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white")
@@ -208,26 +150,18 @@ def registrar_ingreso(request):
                     'qr_base64': qr_base64,
                     'v_exitosa': visit,
                 })
-
         else:
-            return render(request, 'visitors/registrar_ingreso.html', {
-                'visitor_form': v_form,
-                'visit_form': vi_form,
-            })
+            return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': v_form, 'visit_form': vi_form})
 
-    return render(request, 'visitors/registrar_ingreso.html', {
-        'visitor_form': VisitorForm(),
-        'visit_form': VisitForm(),
-    })
+    return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': VisitorForm(), 'visit_form': VisitForm()})
 
-
+@login_required
 def checkout_scanner(request):
     return render(request, 'visitors/checkout.html')
 
-
+@login_required
 def checkout_por_token(request, token):
     token_upper = token.upper()
-    
     try:
         visit = Visit.objects.select_related('visitor').get(token_qr=token_upper, status='ingresado')
         return render(request, 'visitors/checkout.html', {'visit': visit, 'confirmar': True, 'es_empleado': False})
@@ -241,72 +175,81 @@ def checkout_por_token(request, token):
             'token_qr': permiso.token_qr,
             'entry_time': permiso.departure_time,
             'area': permiso.employee.area,
-            'visitor': {'first_name': permiso.employee.name, 'last_name': '', 'company': 'PERSONAL INTERNO'}
+            'visitor': {
+                'first_name': permiso.employee.name, 
+                'last_name': '', 
+                'visitor_type': 'permiso_empleado',
+                'company': 'PERSONAL INTERNO'
+            }
         }
         return render(request, 'visitors/checkout.html', {'visit': visit_mock, 'confirmar': True, 'es_empleado': True})
     except EmployeePermission.DoesNotExist:
-        return render(request, 'visitors/checkout.html', {
-            'error': f'Token "{token_upper}" no encontrado o ya procesó su movimiento.',
-            'confirmar': False,
-        })
-
+        return render(request, 'visitors/checkout.html', {'error': f'Token "{token_upper}" no encontrado.', 'confirmar': False})
 
 @require_POST
+@login_required
 def confirmar_checkout(request, visit_id):
     es_empleado = request.POST.get('es_empleado') == 'True' or request.GET.get('es_empleado') == 'True'
-    
     if es_empleado:
         try:
             permiso = EmployeePermission.objects.select_related('employee').get(id=visit_id, status='ACTIVO')
             permiso.status = 'FINALIZADO'
             permiso.return_time = timezone.now()
             permiso.save()
-            return JsonResponse({
-                'ok': True,
-                'nombre': permiso.employee.name,
-                'token': permiso.token_qr,
-                'exit_time': permiso.return_time.strftime('%H:%M'),
-            })
+            return JsonResponse({'ok': True, 'nombre': permiso.employee.name, 'token': permiso.token_qr, 'exit_time': permiso.return_time.strftime('%H:%M')})
         except EmployeePermission.DoesNotExist:
-            return JsonResponse({'ok': False, 'error': 'Permiso de empleado no encontrado o ya cerrado.'}, status=404)
+            return JsonResponse({'ok': False, 'error': 'No encontrado.'}, status=404)
     else:
         try:
             visit = Visit.objects.select_related('visitor').get(id=visit_id, status='ingresado')
             visit.status = 'salido'
             visit.exit_time = timezone.now()
             visit.save()
-            return JsonResponse({
-                'ok': True,
-                'nombre': f"{visit.visitor.first_name} {visit.visitor.last_name}",
-                'token': visit.token_qr,
-                'exit_time': visit.exit_time.strftime('%H:%M'),
-            })
+            return JsonResponse({'ok': True, 'nombre': f"{visit.visitor.first_name}", 'token': visit.token_qr, 'exit_time': visit.exit_time.strftime('%H:%M')})
         except Visit.DoesNotExist:
-            return JsonResponse({'ok': False, 'error': 'Visita no encontrada o ya finalizada.'}, status=404)
+            return JsonResponse({'ok': False, 'error': 'No encontrado.'}, status=404)
 
-
-# Solución definitiva al error "p is not defined" y "NoReverseMatch" al marcar salida
+@login_required
 def registrar_salida(request, visita_id):
     if request.method == 'POST':
         permiso_query = EmployeePermission.objects.filter(id=visita_id, status='ACTIVO')
         if permiso_query.exists():
-            permiso_instancia = permiso_query.first()
-            permiso_instancia.status = 'FINALIZADO'
-            permiso_instancia.return_time = timezone.now()
-            permiso_instancia.save()
-            messages.success(request, f"Re-ingreso laboral registrado para {permiso_instancia.employee.name}.")
+            p = permiso_query.first()
+            p.status = 'FINALIZADO'
+            p.return_time = timezone.now()
+            p.save()
+            messages.success(request, f"Re-ingreso laboral registrado para {p.employee.name}.")
         else:
             visit = get_object_or_404(Visit, id=visita_id, status='ingresado')
             visit.status = 'salido'
             visit.exit_time = timezone.now()
             visit.save()
             messages.success(request, f"Salida registrada exitosamente para {visit.visitor.first_name} {visit.visitor.last_name}.")
-        
-    # Redirección segura tolerante a namespaces ausentes
-    try:
-        return redirect('visitors:dashboard')
-    except Exception:
-        try:
-            return redirect('dashboard')
-        except Exception:
-            return redirect('/visitors/')
+    return redirect('dashboard:dashboard')
+
+@login_required
+def registrar_regreso_empleado(request, permiso_id):
+    if request.method == 'POST':
+        permiso = get_object_or_404(EmployeePermission, id=permiso_id, status='ACTIVO')
+        permiso.status = 'FINALIZADO'
+        permiso.return_time = timezone.now()
+        permiso.save()
+        messages.success(request, f"Re-ingreso registrado correctamente para {permiso.employee.name}.")
+    return redirect('dashboard:dashboard')
+
+def login_view(request):
+    if request.user.is_authenticated: return redirect('dashboard:dashboard')
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = authenticate(username=form.cleaned_data.get('username'), password=form.cleaned_data.get('password'))
+            if user is not None:
+                login(request, user)
+                return redirect('dashboard:dashboard')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'registration/login.html', {'form': form})
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')

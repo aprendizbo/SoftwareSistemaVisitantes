@@ -27,7 +27,11 @@ class EmployeePermission(models.Model):
     permit_type = models.CharField(max_length=20, choices=PERMIT_TYPES, verbose_name="Tipo de Permiso")
     departure_time = models.DateTimeField(auto_now_add=True, verbose_name="Hora de Salida")
     return_time = models.DateTimeField(null=True, blank=True, verbose_name="Hora de Regreso")
-    token_qr = models.CharField(max_length=8, unique=True, editable=False, blank=True, verbose_name='Token QR')  # ← Agregado para el flujo unificado
+    
+    # --- CAMPO NUEVO ADAPTADO ---
+    detalle_adicional = models.TextField(blank=True, null=True, verbose_name="Detalle / Justificación")
+    
+    token_qr = models.CharField(max_length=8, unique=True, editable=False, blank=True, verbose_name='Token QR')
     status = models.CharField(max_length=20, default='ACTIVO', verbose_name="Estado")
 
     def __str__(self):

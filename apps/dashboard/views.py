@@ -2,19 +2,12 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.conf import settings 
+from django.core.paginator import Paginator # Importante para el botón "Siguiente"
 from apps.visitors.models import Visit
 from apps.employees.models import EmployeePermission
 
 @login_required
 def dashboard(request):
-    # --- CÓDIGO DE PRUEBA (DEBUG) ---
-    print("\n" + "="*50)
-    print("--- RUTAS DE TEMPLATES QUE VE DJANGO ---")
-    print(f"DIRS: {settings.TEMPLATES[0]['DIRS']}")
-    print(f"APP_DIRS: {settings.TEMPLATES[0]['APP_DIRS']}")
-    print("="*50 + "\n")
-    # --------------------------------
-
     hoy = timezone.now().date()
     
     # 1. Traer visitas de visitantes activos
@@ -50,18 +43,18 @@ def dashboard(request):
     # Ordenar todo por hora de entrada
     visitas_activas.sort(key=lambda x: x.entry_time if isinstance(x, Visit) else x['entry_time'], reverse=True)
 
-    # 3. Historial de Últimos Movimientos
-    visitas_salidas = list(Visit.objects.filter(status='salido').select_related('visitor').order_by('-exit_time')[:10])
-    permisos_finalizados = EmployeePermission.objects.filter(status='FINALIZADO').select_related('employee').order_by('-return_time')[:10]
+    # 3. HISTORIAL DE ÚLTIMOS MOVIMIENTOS CON PAGINACIÓN DE 20
+    visitas_salidas = list(Visit.objects.filter(status='salido').select_related('visitor').order_by('-exit_time'))
+    permisos_finalizados = EmployeePermission.objects.filter(status='FINALIZADO').select_related('employee').order_by('-return_time')
     
-    ultimos_movimientos = []
+    ultimos_movimientos_lista = []
 
     for v in visitas_salidas:
         v.tipo_accion = 'Salió'
-        ultimos_movimientos.append(v)
+        ultimos_movimientos_lista.append(v)
 
     for pf in permisos_finalizados:
-        ultimos_movimientos.append({
+        ultimos_movimientos_lista.append({
             'id': pf.id,
             'is_employee_mock': True,
             'status': 'FINALIZADO',
@@ -77,16 +70,21 @@ def dashboard(request):
             'tipo_accion': 'Regresó'
         })
     
-    # Ordenar movimientos recientes
-    ultimos_movimientos.sort(key=lambda x: x.exit_time if hasattr(x, 'exit_time') else x['exit_time'], reverse=True)
+    # Ordenar movimientos globales por fecha/hora
+    ultimos_movimientos_lista.sort(key=lambda x: x.exit_time if hasattr(x, 'exit_time') else x['exit_time'], reverse=True)
+
+    # Aplicamos Paginación: 20 registros por página
+    paginator = Paginator(ultimos_movimientos_lista, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
         'visitas_activas': visitas_activas,
-        'ultimos_movimientos': ultimos_movimientos[:10],
+        'page_obj': page_obj,  # Reemplaza a ultimos_movimientos y contiene el control de páginas
         'en_instalaciones_count': visitas_activas_queryset.count() + permisos_activos.count(),
         'visitantes_dia_count': Visit.objects.filter(entry_time__date=hoy).count(),
         'entrevistas_count': Visit.objects.filter(visitor__visitor_type='entrevistado').count(),
         'permisos_count': permisos_activos.count(),
     }
     
-    return render(request, 'visitors/dashboard.html', context)  
+    return render(request, 'visitors/dashboard.html', context)

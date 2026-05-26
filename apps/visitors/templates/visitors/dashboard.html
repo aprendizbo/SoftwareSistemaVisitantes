@@ -75,15 +75,21 @@
     </div>
 
     <div class="row g-4">
+        
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0 fw-bold text-secondary">
                         <i class="bi bi-activity text-primary"></i> Personal en Instalaciones y Salidas Activas
                     </h5>
-                    <a href="{% url 'visitors:registrar_ingreso' %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-person-plus-fill"></i> Registrar Ingreso / Salida Empleado
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="/admin/visitors/visit/" target="_blank" class="btn btn-outline-success btn-sm fw-bold">
+                            <i class="bi bi-filetype-csv"></i> Extraer Historial (CSV)
+                        </a>
+                        <a href="{% url 'visitors:registrar_ingreso' %}" class="btn btn-primary btn-sm fw-bold">
+                            <i class="bi bi-person-plus-fill"></i> Registrar Ingreso / Empleado
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -189,7 +195,7 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% for mov in ultimos_movimientos %}
+                        {% for mov in page_obj %}
                         <li class="list-group-item px-3 py-2">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -221,6 +227,30 @@
                         </li>
                         {% endfor %}
                     </ul>
+
+                    {% if page_obj.has_other_pages %}
+                    <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light rounded-bottom">
+                        <span class="text-muted" style="font-size: 11px;">
+                            Pág. {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item me-1">
+                                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-bold" style="font-size: 12px;">Anterior</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-primary btn-sm py-0 px-2 fw-bold" style="font-size: 12px;">Siguiente <i class="bi bi-arrow-right-short"></i></a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+
                 </div>
             </div>
         </div>

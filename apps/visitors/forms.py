@@ -65,10 +65,21 @@ class VisitorForm(forms.ModelForm):
         return self.cleaned_data.get('visitor_type')
 
 
+# ─── CLASE ALINEADA CORRECTAMENTE AL BORDE IZQUIERDO ───
 class VisitForm(forms.ModelForm):
+    # Campo explícito para capturar y validar el correo de aviso en recepción
+    correo_notificar = forms.EmailField(
+        label='Correo a Notificar',
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'ejemplo@boccherini.com.co'
+        }),
+        required=True
+    )
+
     class Meta:
         model = Visit
-        fields = ['reason_type', 'reason_detail', 'person_to_visit', 'area']
+        fields = ['reason_type', 'reason_detail', 'person_to_visit', 'area', 'correo_notificar']
         labels = {
             'reason_type': 'Motivo',
             'reason_detail': 'Detalle Adicional',
@@ -91,3 +102,12 @@ class VisitForm(forms.ModelForm):
                 'placeholder': 'Área de destino'
             }),
         }
+
+    # ─── VALIDACIÓN ESTRICTA DE DOMINIO BOCCHERINI ───
+    def clean_correo_notificar(self):
+        correo = self.cleaned_data.get('correo_notificar')
+        if correo:
+            correo = correo.strip().lower()
+            if not correo.endswith('@boccherini.com.co'):
+                raise forms.ValidationError("Error: Solo se permiten correos corporativos de Boccherini (@boccherini.com.co)")
+        return correo

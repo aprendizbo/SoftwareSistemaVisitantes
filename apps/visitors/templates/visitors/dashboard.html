@@ -143,8 +143,14 @@
                                         <td>
                                             {% if visita.is_employee_mock %}
                                                 <code class="text-muted fw-bold">N/A</code>
+                                            {% elif visita.token %}
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.token|slice:":6"|upper }}</code>
+                                            {% elif visita.token_qr %}
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.token_qr|slice:":6"|upper }}</code>
+                                            {% elif visita.visitor.token %}
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.visitor.token|slice:":6"|upper }}</code>
                                             {% else %}
-                                                <code class="text-danger fw-bold">{{ visita.token_corto }}</code>
+                                                <span class="badge bg-warning text-dark style-test" style="font-size: 10px; font-weight: 500;">Sin Token en BD</span>
                                             {% endif %}
                                         </td>
                                         

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: sistemavisitantes-db
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+    environment:
+      - POSTGRES_DB=sistemavisitantes
+      - POSTGRES_USER=sistemavisitantes
+      - POSTGRES_PASSWORD=SV_Boccherini_2026
+
+  web:
+    build: .
+    container_name: sistemavisitantes
+    restart: always
+
+    depends_on:
+      - db
+
+    ports:
+      - "8001:8000"
+
+    environment:
+      - DATABASE_URL=postgres://sistemavisitantes:SV_Boccherini_2026@db:5432/sistemavisitantes
+
+volumes:
+  db_data:

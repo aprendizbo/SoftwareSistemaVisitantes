@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import dj_database_url
 
 # =========================================================
 # BASE DIR
@@ -10,8 +11,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # =========================================================
 SECRET_KEY = 'django-insecure-6bg$otkd2q9+yd+pqt)0+i&8ax60z4gc5f2$c+*3+)^x@!sau='
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = False
+ALLOWED_HOSTS = [
+    '172.16.10.250',
+]
 
 # =========================================================
 # APPLICATIONS
@@ -76,13 +79,12 @@ WSGI_APPLICATION = 'SistemaVisitantes.wsgi.application'
 ASGI_APPLICATION = 'SistemaVisitantes.asgi.application'
 
 # =========================================================
-# DATABASE - POSTGRESQL
+# DATABASE
 # =========================================================
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR}/db.sqlite3"
+    )
 }
 
 # =========================================================
@@ -94,7 +96,7 @@ USE_I18N = True
 USE_TZ = True
 
 # =========================================================
-# STATIC FILES (CSS, JS, Img)
+# STATIC FILES
 # =========================================================
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
@@ -103,7 +105,7 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # =========================================================
-# MEDIA FILES (Fotos de visitantes)
+# MEDIA FILES
 # =========================================================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -114,25 +116,41 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # =========================================================
-# EMAIL CONFIGURATION (Notificaciones Alertas)
+# CONFIGURACIÓN DE CORREO
 # =========================================================
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Gmail SMTP
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'tu_correo_emisor@boccherini.com.co'
-EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'
+EMAIL_USE_SSL = False
 
-DEFAULT_FROM_EMAIL = f"Sistema Control Accesos <{EMAIL_HOST_USER}>"
+# ----------------------------
+# AQUÍ TU CORREO DE GOOGLE
+# ----------------------------
+EMAIL_HOST_USER = 'practicante.ti@boccherini.com.co'
+
+# ----------------------------
+# AQUÍ TU CONTRASEÑA DE APLICACIÓN
+# (16 caracteres generados por Google)
+# ----------------------------
+EMAIL_HOST_PASSWORD = 'AQUI_TU_PASSWORD_APP'
+
+# ----------------------------
+# CORREO QUE APARECERÁ COMO REMITENTE
+# ----------------------------
+DEFAULT_FROM_EMAIL = 'Sistema Control de Accesos <practicante.ti@boccherini.com.co>'
+
+# ----------------------------
+# DESTINO DE LAS ALERTAS
+# ----------------------------
 CORREO_GESTION_HUMANA = 'practicante.ti@boccherini.com.co'
 
 # =========================================================
-# AUTHENTICATION REDIRECTS (Control de accesos global)
+# AUTH
 # =========================================================
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
-
-# CONFIGURACIÓN DE REDIRECCIÓN DE SEGURIDAD
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = '/'

@@ -31,6 +31,8 @@ def enviar_alerta_email(
     nombre_imagen="foto_recepcion.jpg"
 ):
     try:
+        print(f"📧 Intentando enviar correo a: {destinatario}")
+
         email = EmailMessage(
             asunto,
             cuerpo,
@@ -46,11 +48,10 @@ def enviar_alerta_email(
             )
 
         email.send(fail_silently=False)
-
         print(f"✅ CORREO ENVIADO A: {destinatario}")
 
     except Exception as e:
-        print(f"❌ ERROR SMTP: {e}")
+        print(f"❌ ERROR SMTP: {str(e)}")
 
 
 # =========================================================
@@ -95,13 +96,34 @@ def registrar_ingreso(request):
             elif motivo_form == 'otro': tipo_permiso = 'PERSONAL'
 
             token_nuevo = get_random_string(length=8).upper()
+            
+            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (ANTES DE CREAR EL PERMISO) ---
+            photo_data = request.POST.get('photo_base64', '')
+            imagen_bytes_adjuntar = None
 
+            if photo_data and 'base64,' in photo_data:
+                try:
+                    fmt, imgstr = photo_data.split(';base64,')
+                    imagen_bytes_adjuntar = base64.b64decode(imgstr)
+                except Exception:
+                    pass
+
+            correo_destino = post_data.get('correo_notificar')
             permiso = EmployeePermission.objects.create(
                 employee=empleado,
                 permit_type=tipo_permiso,
                 status='ACTIVO',
-                token_qr=token_nuevo
+                token_qr=token_nuevo,
+                correo_notificar=correo_destino
             )
+
+            # --- GUARDADO DEL ARCHIVO EN EL MODELO DE PERMISOS ---
+            if imagen_bytes_adjuntar:
+                permiso.photo.save(
+                    f"permiso_{permiso.id}.jpg",
+                    ContentFile(imagen_bytes_adjuntar),
+                    save=True
+                )
 
             asunto_emp = f"🚨 Empleado en Permiso: {empleado.name}"
             cuerpo_emp = (
@@ -111,10 +133,19 @@ def registrar_ingreso(request):
                 f"• Área/Departamento: {empleado.area}\n"
                 f"• Tipo de Permiso: {tipo_permiso}\n"
                 f"• Token QR Asignado: {permiso.token_qr}\n"
-                f"• Hora de Salida: {timezone.now().strftime('%H:%M')}\n\n"
+                f"• Hora de Salida: {timezone.localtime().strftime('%H:%M')}\n\n"
+                f"Se adjunta la fotografía tomada en recepción.\n\n"
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
-            enviar_alerta_email(asunto_emp, cuerpo_emp)
+
+            # --- ENVÍO DE EMAIL CON LA IMAGEN ADJUNTADA ---
+            if permiso.correo_notificar:
+                enviar_alerta_email(
+                    asunto_emp,
+                    cuerpo_emp,
+                    permiso.correo_notificar,
+                    imagen_bytes_adjuntar
+                )
 
             qr = qrcode.QRCode(version=1, box_size=8, border=4)
             qr.add_data(permiso.token_qr)
@@ -175,6 +206,7 @@ def registrar_ingreso(request):
             visit = vi_form.save(commit=False)
             visit.visitor = visitor_db
             visit.status = 'ingresado'
+            visit.correo_notificar = vi_form.cleaned_data.get('correo_notificar')
             visit.save()
 
             photo_data = request.POST.get('photo_base64', '')
@@ -188,27 +220,31 @@ def registrar_ingreso(request):
                 except Exception:
                     pass
 
-            area_destino = str(visit.area).upper() if visit.area else ""
-            es_para_gestion_humana = "GESTION" in area_destino or "HUMANA" in area_destino or "TALENTO" in area_destino
+            correo_destino = visit.correo_notificar
+            nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
+            asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
 
-            if es_para_gestion_humana:
-                nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
-                asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
-                cuerpo_vis = (
-                    f"Se informa el ingreso de un visitante externo dirigido a su área.\n\n"
-                    f"• Nombre Completo: {nom_completo}\n"
-                    f"• Documento: {visitor_db.document_id}\n"
-                    f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
-                    f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
-                    f"• Persona a Visitar: {visit.person_to_visit}\n"
-                    f"• Área de Destino: {visit.area}\n"
-                    f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
-                    f"• Token QR de Control: {visit.token_qr}\n"
-                    f"• Hora de Entrada: {timezone.now().strftime('%H:%M')}\n\n"
-                    f"Se adjunta la fotografía tomada en recepción.\n\n"
-                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
-                )
-                enviar_alerta_email(asunto_vis, cuerpo_vis, imagen_bytes=imagen_bytes_adjuntar)
+            cuerpo_vis = (
+                f"Se informa el ingreso de un visitante externo.\n\n"
+                f"• Nombre Completo: {nom_completo}\n"
+                f"• Documento: {visitor_db.document_id}\n"
+                f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
+                f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
+                f"• Persona a Visitar: {visit.person_to_visit}\n"
+                f"• Área de Destino: {visit.area}\n"
+                f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
+                f"• Token QR de Control: {visit.token_qr}\n"
+                f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
+                f"Se adjunta la fotografía tomada en recepción.\n\n"
+                f"Atentamente,\nSistema de Control de Accesos Boccherini."
+            )
+
+            enviar_alerta_email(
+                asunto_vis,
+                cuerpo_vis,
+                correo_destino,
+                imagen_bytes_adjuntar
+            )
 
             qr = qrcode.QRCode(version=1, box_size=8, border=4)
             qr.add_data(visit.token_qr)
@@ -283,10 +319,16 @@ def confirmar_checkout(request, visit_id):
                 f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
                 f"• Empleado: {permiso.employee.name}\n"
                 f"• Área/Departamento: {permiso.employee.area}\n"
-                f"• Hora de Retorno: {permiso.return_time.strftime('%H:%M')}\n\n"
+                f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
-            enviar_alerta_email(asunto_ret, cuerpo_ret)
+            
+            if permiso.correo_notificar:
+                enviar_alerta_email(
+                    asunto_ret,
+                    cuerpo_ret,
+                    permiso.correo_notificar
+                )
 
             return JsonResponse({'ok': True, 'nombre': permiso.employee.name, 'token': permiso.token_qr, 'exit_time': permiso.return_time.strftime('%H:%M')})
         except EmployeePermission.DoesNotExist:
@@ -299,20 +341,23 @@ def confirmar_checkout(request, visit_id):
             visit.exit_time = timezone.now()
             visit.save()
 
-            area_destino = str(visit.area).upper() if visit.area else ""
-            es_para_gestion_humana = "GESTION" in area_destino or "HUMANA" in area_destino or "TALENTO" in area_destino
-
-            if es_para_gestion_humana:
+            # --- NUEVO BLOQUE ADAPTADO SIN CONFIGURACIÓN POR ÁREA ---
+            if visit.correo_notificar:
                 nom_completo = f"{visit.visitor.first_name} {visit.visitor.last_name}"
                 asunto_sal = f"🚪 Salida de Visitante: {nom_completo}"
                 cuerpo_sal = (
-                    f"Se informa que el visitante externo dirigido a su área ha registrado su salida.\n\n"
+                    f"Se informa que el visitante ha registrado su salida de las instalaciones.\n\n"
                     f"• Visitante: {nom_completo}\n"
+                    f"• Documento: {visit.visitor.document_id}\n"
                     f"• Empresa / Procedencia: {visit.visitor.company or 'Particular'}\n"
-                    f"• Hora de Salida: {visit.exit_time.strftime('%H:%M')}\n\n"
+                    f"• Hora de Salida: {timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
-                enviar_alerta_email(asunto_sal, cuerpo_sal)
+                enviar_alerta_email(
+                    asunto_sal,
+                    cuerpo_sal,
+                    visit.correo_notificar
+                )
 
             return JsonResponse({'ok': True, 'nombre': f"{visit.visitor.first_name}", 'token': visit.token_qr, 'exit_time': visit.exit_time.strftime('%H:%M')})
         except Visit.DoesNotExist:
@@ -338,7 +383,13 @@ def registrar_salida(request, visita_id):
                 f"• Hora de Retorno: {p.return_time.strftime('%H:%M')}\n\n"
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
-            enviar_alerta_email(asunto_ret, cuerpo_ret)
+            
+            if p.correo_notificar:
+                enviar_alerta_email(
+                    asunto_ret,
+                    cuerpo_ret,
+                    p.correo_notificar
+                )
 
             messages.success(request, f"Re-ingreso laboral registrado para {p.employee.name}.")
             
@@ -348,20 +399,23 @@ def registrar_salida(request, visita_id):
             visit.exit_time = timezone.now()
             visit.save()
 
-            area_destino = str(visit.area).upper() if visit.area else ""
-            es_para_gestion_humana = "GESTION" in area_destino or "HUMANA" in area_destino or "TALENTO" in area_destino
-
-            if es_para_gestion_humana:
+            # --- NUEVO BLOQUE ADAPTADO EN REGISTRAR_SALIDA ---
+            if visit.correo_notificar:
                 nom_completo = f"{visit.visitor.first_name} {visit.visitor.last_name}"
                 asunto_sal = f"🚪 Salida de Visitante: {nom_completo}"
                 cuerpo_sal = (
-                    f"Se informa que el visitante externo dirigido a su área ha registrado su salida.\n\n"
+                    f"Se informa que el visitante ha registrado su salida de las instalaciones.\n\n"
                     f"• Visitante: {nom_completo}\n"
+                    f"• Documento: {visit.visitor.document_id}\n"
                     f"• Empresa / Procedencia: {visit.visitor.company or 'Particular'}\n"
-                    f"• Hora de Salida: {visit.exit_time.strftime('%H:%M')}\n\n"
+                    f"• Hora de Salida: {timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
-                enviar_alerta_email(asunto_sal, cuerpo_sal)
+                enviar_alerta_email(
+                    asunto_sal,
+                    cuerpo_sal,
+                    visit.correo_notificar
+                )
 
             messages.success(request, f"Salida registrada exitosamente para {visit.visitor.first_name} {visit.visitor.last_name}.")
     return redirect('dashboard:dashboard')
@@ -380,10 +434,16 @@ def registrar_regreso_empleado(request, permiso_id):
             f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
             f"• Empleado: {permiso.employee.name}\n"
             f"• Área/Departamento: {permiso.employee.area}\n"
-            f"• Hora de Retorno: {permiso.return_time.strftime('%H:%M')}\n\n"
+            f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
             f"Atentamente,\nSistema de Control de Accesos Boccherini."
         )
-        enviar_alerta_email(asunto_ret, cuerpo_ret)
+        
+        if permiso.correo_notificar:
+            enviar_alerta_email(
+                asunto_ret,
+                cuerpo_ret,
+                permiso.correo_notificar
+            )
 
         messages.success(request, f"Re-ingreso registrado correctamente para {permiso.employee.name}.")
     return redirect('dashboard:dashboard')

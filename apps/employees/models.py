@@ -34,6 +34,14 @@ class EmployeePermission(models.Model):
     # --- NUEVO CAMPO PARA NOTIFICACIONES MANUALES ---
     correo_notificar = models.EmailField(max_length=254, verbose_name="Correo a Notificar", blank=True, null=True)
     
+    # --- CAMPO DE FOTOGRAFÍA ADAPTADO ---
+    photo = models.ImageField(
+        upload_to='empleados_permisos/',
+        blank=True,
+        null=True,
+        verbose_name='Foto'
+    )
+    
     token_qr = models.CharField(max_length=8, unique=True, editable=False, blank=True, verbose_name='Token QR')
     status = models.CharField(max_length=20, default='ACTIVO', verbose_name="Estado")
 

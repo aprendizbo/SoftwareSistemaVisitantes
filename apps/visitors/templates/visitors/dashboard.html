@@ -12,12 +12,21 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold text-secondary mb-0">
-            <i class="bi bi-speedometer2 text-primary"></i> Panel Principal
+            <i class="bi bi-speedometer2 text-primary"></i>
+            Panel Principal
         </h4>
-        <span class="text-muted small">
-            <i class="bi bi-calendar3"></i>
-            {% now "j \d\e F \d\e Y" %}
-        </span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted small">
+                <i class="bi bi-calendar3"></i>
+                {% now "j \d\e F \d\e Y" %}
+            </span>
+            <a href="{% url 'logout' %}"
+               class="btn btn-outline-danger btn-sm fw-bold"
+               onclick="return confirm('¿Desea cerrar sesión?');">
+                <i class="bi bi-box-arrow-right"></i>
+                Cerrar Sesión
+            </a>
+        </div>
     </div>
 
     <div class="row g-3 mb-4">
@@ -76,33 +85,45 @@
 
     <div class="row g-4">
         
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-xl-9">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h5 class="mb-0 fw-bold text-secondary">
-                        <i class="bi bi-activity text-primary"></i> Personal en Instalaciones y Salidas Activas
-                    </h5>
-                    <div class="d-flex gap-2">
-                        <a href="/admin/visitors/visit/" target="_blank" class="btn btn-outline-success btn-sm fw-bold">
-                            <i class="bi bi-filetype-csv"></i> Extraer Historial (CSV)
-                        </a>
-                        <a href="{% url 'visitors:registrar_ingreso' %}" class="btn btn-primary btn-sm fw-bold">
-                            <i class="bi bi-person-plus-fill"></i> Registrar Ingreso / Empleado
-                        </a>
+                
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                        <h6 class="mb-0 fw-bold text-secondary">
+                            <i class="bi bi-activity text-primary"></i>
+                            Personal en Instalaciones y Salidas Activas
+                        </h6>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="/admin/visitors/visit/" target="_blank"
+                               class="btn btn-outline-success btn-sm fw-bold">
+                                <i class="bi bi-filetype-csv"></i>
+                                Extraer Historial (CSV)
+                            </a>
+
+                            <a href="{% url 'visitors:registrar_ingreso' %}"
+                               class="btn btn-primary btn-sm fw-bold">
+                                <i class="bi bi-person-plus-fill"></i>
+                                Registrar Ingreso / Empleado
+                            </a>
+                        </div>
+
                     </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Nombre</th>
-                                    <th>Tipo</th>
-                                    <th>Empresa / Área</th>
-                                    <th>Hora Evento</th>
-                                    <th>Token</th>
-                                    <th>Estado</th>
-                                    <th class="text-center">Acciones</th>
+                                    <th style="width:25%;">Nombre</th>
+                                    <th style="width:10%;">Tipo</th>
+                                    <th style="width:20%;">Empresa / Área</th>
+                                    <th style="width:10%;">Hora Evento</th>
+                                    <th style="width:12%;">Token</th>
+                                    <th style="width:13%;">Estado</th>
+                                    <th style="width:10%;" class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -116,7 +137,7 @@
                                 {% else %}
                                     {% for visita in visitas_activas %}
                                     <tr>
-                                        <td class="fw-bold">
+                                        <td class="fw-bold text-truncate" style="max-width:220px;">
                                             {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
                                         </td>
                                         
@@ -131,6 +152,7 @@
                                         </td>
                                         
                                         <td>
+                                            {% if whitespace_hack %}{% endif %}
                                             {% if visita.is_employee_mock %}
                                                 <span class="text-muted small">Área:</span> {{ visita.area|default:"—" }}
                                             {% else %}
@@ -140,17 +162,23 @@
                                         
                                         <td>{{ visita.entry_time|time:"H:i" }}</td>
                                         
-                                        <td>
-                                            {% if visita.is_employee_mock %}
-                                                <code class="text-muted fw-bold">N/A</code>
+                                        <td class="text-nowrap">
+                                            {% if visita.token_qr %}
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
+                                                    {{ visita.token_qr|upper }}
+                                                </code>
                                             {% elif visita.token %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.token|slice:":6"|upper }}</code>
-                                            {% elif visita.token_qr %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.token_qr|slice:":6"|upper }}</code>
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
+                                                    {{ visita.token|upper }}
+                                                </code>
                                             {% elif visita.visitor.token %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">{{ visita.visitor.token|slice:":6"|upper }}</code>
+                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
+                                                    {{ visita.visitor.token|upper }}
+                                                </code>
                                             {% else %}
-                                                <span class="badge bg-warning text-dark style-test" style="font-size: 10px; font-weight: 500;">Sin Token en BD</span>
+                                                <span class="badge bg-warning text-dark" style="font-size:10px;">
+                                                    Sin Token
+                                                </span>
                                             {% endif %}
                                         </td>
                                         
@@ -192,7 +220,7 @@
             </div>
         </div>
 
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-xl-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-secondary">

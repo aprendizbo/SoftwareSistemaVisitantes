@@ -11,8 +11,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # =========================================================
 SECRET_KEY = 'django-insecure-6bg$otkd2q9+yd+pqt)0+i&8ax60z4gc5f2$c+*3+)^x@!sau='
-DEBUG = False
+DEBUG = True
+
 ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
     '172.16.10.250',
 ]
 
@@ -136,7 +139,7 @@ EMAIL_HOST_USER = 'practicante.ti@boccherini.com.co'
 # AQUÍ TU CONTRASEÑA DE APLICACIÓN
 # (16 caracteres generados por Google)
 # ----------------------------
-EMAIL_HOST_PASSWORD = 'AQUI_TU_PASSWORD_APP'
+EMAIL_HOST_PASSWORD = 'dnidwovddrzpciuc'
 
 # ----------------------------
 # CORREO QUE APARECERÁ COMO REMITENTE

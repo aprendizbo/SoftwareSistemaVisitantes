@@ -52,6 +52,12 @@ class Visit(models.Model):
     person_to_visit = models.CharField(max_length=100, verbose_name='Persona a Visitar')
     reason_detail = models.TextField(blank=True, null=True, verbose_name='Detalle Adicional')
     area = models.CharField(max_length=100, verbose_name='Área de Destino')
+    correo_notificar = models.EmailField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name='Correo a Notificar'
+    )
     entry_time = models.DateTimeField(auto_now_add=True, verbose_name='Hora de Entrada')
     exit_time = models.DateTimeField(blank=True, null=True, verbose_name='Hora de Salida')
     photo = models.ImageField(upload_to='visitas_fotos/', blank=True, null=True, verbose_name='Foto')
@@ -88,6 +94,25 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class EmployeePermission(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='Empleado')
+    permit_type = models.CharField(max_length=100, verbose_name='Tipo de Permiso')
+    status = models.CharField(max_length=20, default='ACTIVO', verbose_name='Estado')
+    token_qr = models.CharField(max_length=8, unique=True, blank=True, verbose_name='Token QR')
+    correo_notificar = models.EmailField(
+        blank=True,
+        null=True,
+        verbose_name='Correo a Notificar'
+    )
+
+    class Meta:
+        verbose_name = 'Permiso de Empleado'
+        verbose_name_plural = 'Permisos de Empleados'
+
+    def __str__(self):
+        return f"{self.employee.first_name} - {self.permit_type} ({self.status})"
 
 
 class EmployeeMovement(models.Model):

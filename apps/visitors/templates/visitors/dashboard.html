@@ -20,12 +20,15 @@
                 <i class="bi bi-calendar3"></i>
                 {% now "j \d\e F \d\e Y" %}
             </span>
-            <a href="{% url 'logout' %}"
-               class="btn btn-outline-danger btn-sm fw-bold"
-               onclick="return confirm('¿Desea cerrar sesión?');">
-                <i class="bi bi-box-arrow-right"></i>
-                Cerrar Sesión
-            </a>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn btn-outline-danger btn-sm fw-bold"
+                        onclick="return confirm('¿Desea cerrar sesión?');">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </button>
+            </form>
         </div>
     </div>
 

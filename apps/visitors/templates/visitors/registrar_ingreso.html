@@ -12,8 +12,11 @@
     {% endif %}
 
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Registrar Ingreso/Salida</h4>
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-light btn-sm">
+                ← Volver
+            </a>
         </div>
         <div class="card-body">
             <form method="POST" action="{% url 'visitors:registrar_ingreso' %}" enctype="multipart/form-data" id="form-registro">

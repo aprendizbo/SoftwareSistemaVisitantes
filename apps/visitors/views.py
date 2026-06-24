@@ -109,12 +109,15 @@ def registrar_ingreso(request):
                     pass
 
             correo_destino = post_data.get('correo_notificar')
+            
+            # --- MODIFICADO: CREACIÓN DEL PERMISO CON DETALLE ADICIONAL ---
             permiso = EmployeePermission.objects.create(
                 employee=empleado,
                 permit_type=tipo_permiso,
                 status='ACTIVO',
                 token_qr=token_nuevo,
-                correo_notificar=correo_destino
+                correo_notificar=correo_destino,
+                detalle_adicional=post_data.get('reason_detail', '')
             )
 
             # --- GUARDADO DEL ARCHIVO EN EL MODELO DE PERMISOS ---
@@ -126,12 +129,22 @@ def registrar_ingreso(request):
                 )
 
             asunto_emp = f"🚨 Empleado en Permiso: {empleado.name}"
+            
+            # --- MODIFICADO: CONSTRUCCIÓN DINÁMICA DEL CUERPO DEL CORREO ---
+            detalle_permiso = ""
+
+            if permiso.detalle_adicional:
+                detalle_permiso = (
+                    f"• Detalle Adicional: {permiso.detalle_adicional}\n"
+                )
+
             cuerpo_emp = (
                 f"Se informa la salida de un empleado bajo modalidad de permiso.\n\n"
                 f"• Empleado: {empleado.name}\n"
                 f"• Documento: {document_id}\n"
                 f"• Área/Departamento: {empleado.area}\n"
                 f"• Tipo de Permiso: {tipo_permiso}\n"
+                f"{detalle_permiso}"
                 f"• Token QR Asignado: {permiso.token_qr}\n"
                 f"• Hora de Salida: {timezone.localtime().strftime('%H:%M')}\n\n"
                 f"Se adjunta la fotografía tomada en recepción.\n\n"
@@ -224,6 +237,11 @@ def registrar_ingreso(request):
             nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
             asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
 
+            # CONDICIONAL PARA EL DETALLE ADICIONAL
+            detalle_adicional = ""
+            if visit.reason_detail:
+                detalle_adicional = f"• Detalle Adicional: {visit.reason_detail}\n"
+
             cuerpo_vis = (
                 f"Se informa el ingreso de un visitante externo.\n\n"
                 f"• Nombre Completo: {nom_completo}\n"
@@ -233,6 +251,7 @@ def registrar_ingreso(request):
                 f"• Persona a Visitar: {visit.person_to_visit}\n"
                 f"• Área de Destino: {visit.area}\n"
                 f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
+                f"{detalle_adicional}"
                 f"• Token QR de Control: {visit.token_qr}\n"
                 f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
                 f"Se adjunta la fotografía tomada en recepción.\n\n"

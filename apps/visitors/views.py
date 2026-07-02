@@ -235,28 +235,52 @@ def registrar_ingreso(request):
 
             correo_destino = visit.correo_notificar
             nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
-            asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
+            
+            # --- MODIFICADO: ASUNTO DEPENDIENDO DEL TIPO DE VISITANTE ---
+            if visitor_db.visitor_type == 'entrevistado':
+                asunto_vis = f"👤 Entrevistado en Instalaciones: {nom_completo}"
+            else:
+                asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
 
             # CONDICIONAL PARA EL DETALLE ADICIONAL
             detalle_adicional = ""
             if visit.reason_detail:
                 detalle_adicional = f"• Detalle Adicional: {visit.reason_detail}\n"
 
-            cuerpo_vis = (
-                f"Se informa el ingreso de un visitante externo.\n\n"
-                f"• Nombre Completo: {nom_completo}\n"
-                f"• Documento: {visitor_db.document_id}\n"
-                f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
-                f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
-                f"• Persona a Visitar: {visit.person_to_visit}\n"
-                f"• Área de Destino: {visit.area}\n"
-                f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
-                f"{detalle_adicional}"
-                f"• Token QR de Control: {visit.token_qr}\n"
-                f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
-                f"Se adjunta la fotografía tomada en recepción.\n\n"
-                f"Atentamente,\nSistema de Control de Accesos Boccherini."
-            )
+            # --- MODIFICADO: CUERPO DEPENDIENDO DEL TIPO DE VISITANTE ---
+            if visitor_db.visitor_type == 'entrevistado':
+                cuerpo_vis = (
+                    f"Se informa el ingreso de un entrevistado.\n\n"
+                    f"• Nombre Completo: {nom_completo}\n"
+                    f"• Tipo de Documento: {visitor_db.get_document_type_display()}\n"
+                    f"• Número de Documento: {visitor_db.document_id}\n"
+                    f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
+                    f"• Persona a Visitar: {visit.person_to_visit}\n"
+                    f"• Área de Destino: {visit.area}\n"
+                    f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
+                    f"{detalle_adicional}"
+                    f"• Token QR de Control: {visit.token_qr}\n"
+                    f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
+                    f"Se adjunta la fotografía tomada en recepción.\n\n"
+                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
+                )
+            else:
+                cuerpo_vis = (
+                    f"Se informa el ingreso de un visitante externo.\n\n"
+                    f"• Nombre Completo: {nom_completo}\n"
+                    f"• Tipo de Documento: {visitor_db.get_document_type_display()}\n"
+                    f"• Número de Documento: {visitor_db.document_id}\n"
+                    f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
+                    f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
+                    f"• Persona a Visitar: {visit.person_to_visit}\n"
+                    f"• Área de Destino: {visit.area}\n"
+                    f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
+                    f"{detalle_adicional}"
+                    f"• Token QR de Control: {visit.token_qr}\n"
+                    f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
+                    f"Se adjunta la fotografía tomada en recepción.\n\n"
+                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
+                )
 
             enviar_alerta_email(
                 asunto_vis,

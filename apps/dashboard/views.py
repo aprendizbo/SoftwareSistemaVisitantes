@@ -114,7 +114,7 @@ def dashboard(request):
     context = {
         'visitas_activas': visitas_activas,
         'page_obj': page_obj,
-        'en_instalaciones_count': visitas_activas_queryset.count() + permisos_activos.count(),
+        'en_instalaciones_count': visitas_activas_queryset.count(),
         
         # Ajuste: Excluye a los entrevistados del conteo general del día
         'visitantes_dia_count': Visit.objects.filter(

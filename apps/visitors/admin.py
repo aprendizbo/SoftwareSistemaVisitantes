@@ -32,9 +32,9 @@ def extraer_historial_csv(modeladmin, request, queryset):
     
     writer = csv.writer(response, delimiter=';')
     
-    # Encabezados corporativos del archivo de auditoría
+    # Encabezados corporativos del archivo de auditoría con la nueva columna TIPO DOC
     writer.writerow([
-        'ID REGISTRO', 'NOMBRES', 'APELLIDOS', 'NRO DOCUMENTO', 
+        'ID REGISTRO', 'NOMBRES', 'APELLIDOS', 'TIPO DOC', 'NRO DOCUMENTO', 
         'PERFIL VISITANTE', 'EMPRESA CORPORATIVA', 'PERSONA A VISITAR',
         'FECHA HORA INGRESO', 'FECHA HORA SALIDA', 'ESTADO ACTUAL'
     ])
@@ -49,6 +49,16 @@ def extraer_historial_csv(modeladmin, request, queryset):
             visita.id,
             visita.visitor.first_name if visita.visitor else '',
             visita.visitor.last_name if visita.visitor else '',
+            
+            # Mapeo del tipo de documento (convertido a minúsculas para mayor seguridad)
+            {
+                'cedula': 'CC',
+                'cedula_ciudadania': 'CC',
+                'ce': 'CE',
+                'cedula_extranjeria': 'CE',
+                'pasaporte': 'PAS'
+            }.get(str(getattr(visita.visitor, 'document_type', '')).lower(), ''),
+            
             getattr(visita.visitor, 'document_id', 'N/A'),
             visita.visitor.get_visitor_type_display() if visita.visitor else '',
             getattr(visita.visitor, 'company', 'Particular'),

@@ -8,10 +8,11 @@ class Visitor(models.Model):
         ('ce', 'Cédula de Extranjería'),
         ('pasaporte', 'Pasaporte'),
     ]
+    # Se actualizó el valor de la clave 'visitante' por 'visitante_externo'
     TIPO_VIS = [
         ('entrevistado', 'Entrevistado'),
         ('proveedor', 'Proveedor'),
-        ('visitante', 'Visitante Externo'),
+        ('visitante_externo', 'Visitante Externo'),
         ('contratista', 'Contratista'),
     ]
 

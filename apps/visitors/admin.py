@@ -37,7 +37,7 @@ def extraer_historial_csv(modeladmin, request, queryset):
     
     writer = csv.writer(response, delimiter=';')
     
-    # Encabezados corporativos del archivo de auditoría con la nueva columna TIPO DOC
+    # Encabezados corporativos del archivo de auditoría
     writer.writerow([
         'ID REGISTRO', 'NOMBRES', 'APELLIDOS', 'TIPO DOC', 'NRO DOCUMENTO', 
         'PERFIL VISITANTE', 'EMPRESA CORPORATIVA', 'PERSONA A VISITAR',
@@ -65,7 +65,7 @@ def extraer_historial_csv(modeladmin, request, queryset):
             }.get(str(getattr(visita.visitor, 'document_type', '')).lower(), ''),
             
             getattr(visita.visitor, 'document_id', 'N/A'),
-            visita.visitor.get_visitor_type_display() if visita.visitor else '',
+            f"{visita.visitor.visitor_type}" if visita.visitor else '',
             getattr(visita.visitor, 'company', 'Particular'),
             visita.person_to_visit if hasattr(visita, 'person_to_visit') else 'No Asignado',
             entrada_local.strftime('%Y-%m-%d %H:%M') if entrada_local else '',
@@ -89,10 +89,21 @@ def extraer_historial_excel(modeladmin, request, queryset):
     ws = wb.active
     ws.title = "Historial"
 
+    # Se agregó 'DETALLE ADICIONAL' y la 'FOTO' se desplaza al final
     encabezados = [
-        'ID', 'NOMBRES', 'APELLIDOS', 'TIPO DOC', 'DOCUMENTO',
-        'TIPO VISITANTE', 'EMPRESA', 'PERSONA A VISITAR', 'INGRESO',
-        'SALIDA', 'ESTADO', 'FOTO'
+        'ID',
+        'NOMBRES',
+        'APELLIDOS',
+        'TIPO DOC',
+        'DOCUMENTO',
+        'TIPO VISITANTE',
+        'EMPRESA',
+        'PERSONA A VISITAR',
+        'DETALLE ADICIONAL',
+        'INGRESO',
+        'SALIDA',
+        'ESTADO',
+        'FOTO'
     ]
 
     for col_num, encabezado in enumerate(encabezados, 1):
@@ -118,15 +129,17 @@ def extraer_historial_excel(modeladmin, request, queryset):
         if visita.visitor and getattr(visita.visitor, 'visitor_type', '') == 'entrevistado':
             empresa = 'NA'
 
+        # Integración de reason_detail
         datos = [
             visita.id,
             visita.visitor.first_name if visita.visitor else '',
             visita.visitor.last_name if visita.visitor else '',
             tipo_doc,
             getattr(visita.visitor, 'document_id', 'N/A'),
-            visita.visitor.get_visitor_type_display() if visita.visitor else '',
+           f"{visita.visitor.visitor_type}" if visita.visitor else '',
             empresa,
             visita.person_to_visit if hasattr(visita, 'person_to_visit') else 'No Asignado',
+            getattr(visita, 'reason_detail', '') if getattr(visita, 'reason_detail', '') else '',
             entrada_local.strftime('%Y-%m-%d %H:%M') if entrada_local else '',
             salida_local.strftime('%Y-%m-%d %H:%M') if salida_local else 'En Instalaciones',
             visita.get_status_display() if hasattr(visita, 'get_status_display') else getattr(visita, 'status', ''),
@@ -135,18 +148,20 @@ def extraer_historial_excel(modeladmin, request, queryset):
         for col_num, valor in enumerate(datos, 1):
             ws.cell(row=fila, column=col_num, value=valor)
 
+        # La foto se inyecta en la columna M
         if hasattr(visita, 'photo') and visita.photo:
             try:
                 img = ExcelImage(visita.photo.path)
                 img.width = 80
                 img.height = 80
-                ws.add_image(img, f'L{fila}')
+                ws.add_image(img, f'M{fila}')
                 ws.row_dimensions[fila].height = 65
             except Exception:
                 pass
 
         fila += 1
 
+    # Ajuste de las dimensiones desplazando correctamente según las nuevas columnas
     ws.column_dimensions['A'].width = 10
     ws.column_dimensions['B'].width = 20
     ws.column_dimensions['C'].width = 20
@@ -155,10 +170,11 @@ def extraer_historial_excel(modeladmin, request, queryset):
     ws.column_dimensions['F'].width = 20
     ws.column_dimensions['G'].width = 25
     ws.column_dimensions['H'].width = 25
-    ws.column_dimensions['I'].width = 20
-    ws.column_dimensions['J'].width = 20
-    ws.column_dimensions['K'].width = 18
-    ws.column_dimensions['L'].width = 18
+    ws.column_dimensions['I'].width = 45  # DETALLE ADICIONAL
+    ws.column_dimensions['J'].width = 20  # INGRESO
+    ws.column_dimensions['K'].width = 20  # SALIDA
+    ws.column_dimensions['L'].width = 18  # ESTADO
+    ws.column_dimensions['M'].width = 18  # FOTO
 
     wb.save(response)
     return response

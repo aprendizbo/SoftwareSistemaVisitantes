@@ -3,8 +3,23 @@ import uuid
 
 # --- MODELOS DE EMPLEADOS ---
 class Employee(models.Model):
+    DOCUMENT_CHOICES = [
+        ('cedula', 'CC'),
+        ('ce', 'CE'),
+        ('pasaporte', 'PAS'),
+    ]
+
     name = models.CharField(max_length=150, verbose_name="Nombre Completo")
-    employee_id = models.CharField(max_length=20, unique=True, verbose_name="Cédula/ID")
+    
+    # --- CAMPO NUEVO PROFESIONAL ---
+    document_type = models.CharField(
+        max_length=20,
+        choices=DOCUMENT_CHOICES,
+        default='cedula',
+        verbose_name="Tipo de Documento"
+    )
+    
+    employee_id = models.CharField(max_length=20, unique=True, verbose_name="Número de Documento")
     area = models.CharField(max_length=100, verbose_name="Área de Trabajo", blank=True, null=True)
 
     def __str__(self):
@@ -42,7 +57,8 @@ class EmployeePermission(models.Model):
         verbose_name='Foto'
     )
     
-    token_qr = models.CharField(max_length=8, unique=True, editable=False, blank=True, verbose_name='Token QR')
+    # --- FIX LIMPIO: Se removió unique=True y se agregó null=True ---
+    token_qr = models.CharField(max_length=8, editable=False, blank=True, null=True, verbose_name='Token QR')
     status = models.CharField(max_length=20, default='ACTIVO', verbose_name="Estado")
 
     def __str__(self):

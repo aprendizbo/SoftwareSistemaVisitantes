@@ -1,7 +1,3 @@
-from io import BytesIO
-from openpyxl import Workbook
-from openpyxl.drawing.image import Image as ExcelImage
-from openpyxl.styles import Font
 import csv
 import pytz
 from django.contrib import admin
@@ -23,9 +19,8 @@ def get_bogota_time(dt):
 
 
 # ==========================================
-# ACCIONES: EXTRAER HISTORIAL DE VISITANTES
+# ACCIÓN: EXTRAER HISTORIAL DE VISITANTES (CSV)
 # ==========================================
-
 @admin.action(description="Extraer Historial Seleccionado (Archivo CSV)")
 def extraer_historial_csv(modeladmin, request, queryset):
     """
@@ -76,94 +71,6 @@ def extraer_historial_csv(modeladmin, request, queryset):
     return response
 
 
-@admin.action(description="Extraer Historial Seleccionado (Excel con Fotos)")
-def extraer_historial_excel(modeladmin, request, queryset):
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = (
-        'attachment; filename="historial_boccherini.xlsx"'
-    )
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Historial"
-
-    encabezados = [
-        'ID', 'NOMBRES', 'APELLIDOS', 'TIPO DOC', 'DOCUMENTO',
-        'TIPO VISITANTE', 'EMPRESA', 'PERSONA A VISITAR', 'INGRESO',
-        'SALIDA', 'ESTADO', 'FOTO'
-    ]
-
-    for col_num, encabezado in enumerate(encabezados, 1):
-        celda = ws.cell(row=1, column=col_num)
-        celda.value = encabezado
-        celda.font = Font(bold=True)
-
-    fila = 2
-
-    for visita in queryset.select_related('visitor'):
-        entrada_local = get_bogota_time(visita.entry_time)
-        salida_local = get_bogota_time(getattr(visita, 'exit_time', None))
-
-        tipo_doc = {
-            'cedula': 'CC',
-            'cedula_ciudadania': 'CC',
-            'ce': 'CE',
-            'cedula_extranjeria': 'CE',
-            'pasaporte': 'PAS'
-        }.get(str(getattr(visita.visitor, 'document_type', '')).lower(), '')
-
-        empresa = getattr(visita.visitor, 'company', 'Particular')
-        if visita.visitor and getattr(visita.visitor, 'visitor_type', '') == 'entrevistado':
-            empresa = 'NA'
-
-        datos = [
-            visita.id,
-            visita.visitor.first_name if visita.visitor else '',
-            visita.visitor.last_name if visita.visitor else '',
-            tipo_doc,
-            getattr(visita.visitor, 'document_id', 'N/A'),
-            visita.visitor.get_visitor_type_display() if visita.visitor else '',
-            empresa,
-            visita.person_to_visit if hasattr(visita, 'person_to_visit') else 'No Asignado',
-            entrada_local.strftime('%Y-%m-%d %H:%M') if entrada_local else '',
-            salida_local.strftime('%Y-%m-%d %H:%M') if salida_local else 'En Instalaciones',
-            visita.get_status_display() if hasattr(visita, 'get_status_display') else getattr(visita, 'status', ''),
-        ]
-
-        for col_num, valor in enumerate(datos, 1):
-            ws.cell(row=fila, column=col_num, value=valor)
-
-        if hasattr(visita, 'photo') and visita.photo:
-            try:
-                img = ExcelImage(visita.photo.path)
-                img.width = 80
-                img.height = 80
-                ws.add_image(img, f'L{fila}')
-                ws.row_dimensions[fila].height = 65
-            except Exception:
-                pass
-
-        fila += 1
-
-    ws.column_dimensions['A'].width = 10
-    ws.column_dimensions['B'].width = 20
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 12
-    ws.column_dimensions['E'].width = 18
-    ws.column_dimensions['F'].width = 20
-    ws.column_dimensions['G'].width = 25
-    ws.column_dimensions['H'].width = 25
-    ws.column_dimensions['I'].width = 20
-    ws.column_dimensions['J'].width = 20
-    ws.column_dimensions['K'].width = 18
-    ws.column_dimensions['L'].width = 18
-
-    wb.save(response)
-    return response
-
-
 # ==========================================
 # REGISTROS DEL ADMINISTRADOR (DJANGO ADMIN)
 # ==========================================
@@ -186,8 +93,5 @@ class VisitAdmin(admin.ModelAdmin):
     # Buscador veloz en barra superior
     search_fields = ('visitor__first_name', 'visitor__last_name', 'person_to_visit')
     
-    # Inyección de las acciones de descarga CSV y Excel para Auditoría
-    actions = [
-        extraer_historial_csv,
-        extraer_historial_excel
-    ]
+    # Inyección de la acción de descarga CSV para Auditoría
+    actions = [extraer_historial_csv]

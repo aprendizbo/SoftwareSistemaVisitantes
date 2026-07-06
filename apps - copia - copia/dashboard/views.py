@@ -17,7 +17,6 @@ def dashboard(request):
     # =====================================
     # CIERRE AUTOMÁTICO DE VISITAS Y PERMISOS (24h)
     # =====================================
-    # Se corrige/mantiene el comportamiento original de autocierre
     Visit.objects.filter(
         status='ingresado',
         entry_time__lt=limite
@@ -48,28 +47,21 @@ def dashboard(request):
         departure_time__date=hoy
     ).select_related('employee')
 
-    # CORRECCIÓN APLICADA AQUÍ: Se llama la foto directamente desde el permiso (p.photo)
     for p in permisos_activos:
         visitas_activas.append({
             'id': p.id,
             'is_employee_mock': True,
             'status': 'ACTIVO',
             'visitor': {
-                'first_name': getattr(
-                    p.employee,
-                    'first_name',
-                    p.employee.name if hasattr(p.employee, 'name') else ''
-                ),
-                'last_name': getattr(p.employee, 'last_name', ''),
+                'first_name': p.employee.name,
+                'last_name': '',
                 'visitor_type': 'permiso_empleado',
                 'get_visitor_type_display': 'Permiso de Empleado',
                 'company': 'PERSONAL INTERNO'
             },
-            'employee': p.employee,
             'area': p.employee.area,
             'entry_time': p.departure_time,
-            'token_qr': getattr(p, 'token_qr', None),
-            'photo': p.photo
+            'token_qr': p.token_qr
         })
 
     # Ordenar todo por hora de entrada
@@ -100,14 +92,10 @@ def dashboard(request):
             'is_employee_mock': True,
             'status': 'FINALIZADO',
             'visitor': {
-                'first_name': getattr(
-                    pf.employee,
-                    'first_name',
-                    pf.employee.name if hasattr(pf.employee, 'name') else ''
-                ),
-                'last_name': getattr(pf.employee, 'last_name', ''),
+                'first_name': pf.employee.name,
+                'last_name': '',
                 'visitor_type': 'permiso_empleado',
-                'get_visitor_type_display': f'Permiso {getattr(pf, "permit_type", "empleado").capitalize()}',
+                'get_visitor_type_display': f'Permiso {pf.permit_type.capitalize()}',
                 'company': 'PERSONAL INTERNO'
             },
             'area': pf.employee.area,

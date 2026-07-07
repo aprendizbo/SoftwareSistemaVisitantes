@@ -17,7 +17,6 @@ def dashboard(request):
     # =====================================
     # CIERRE AUTOMÁTICO DE VISITAS Y PERMISOS (24h)
     # =====================================
-    # Se corrige/mantiene el comportamiento original de autocierre
     Visit.objects.filter(
         status='ingresado',
         entry_time__lt=limite
@@ -48,7 +47,6 @@ def dashboard(request):
         departure_time__date=hoy
     ).select_related('employee')
 
-    # CORRECCIÓN APLICADA AQUÍ: Se llama la foto directamente desde el permiso (p.photo)
     for p in permisos_activos:
         visitas_activas.append({
             'id': p.id,
@@ -82,7 +80,6 @@ def dashboard(request):
         ).select_related('visitor').order_by('-exit_time')[:200]
     )
     
-    # Protección: filtramos nulos en return_time
     permisos_finalizados = EmployeePermission.objects.filter(
         status='FINALIZADO',
         return_time__isnull=False
@@ -118,8 +115,8 @@ def dashboard(request):
     # Ordenar movimientos globales
     ultimos_movimientos_lista.sort(key=lambda x: x.exit_time if hasattr(x, 'exit_time') else x['exit_time'], reverse=True)
 
-    # Paginación
-    paginator = Paginator(ultimos_movimientos_lista, 20)
+    # 1. CAMBIO APLICADO: Paginación ahora con 10 registros
+    paginator = Paginator(ultimos_movimientos_lista, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -127,19 +124,15 @@ def dashboard(request):
         'visitas_activas': visitas_activas,
         'page_obj': page_obj,
         'en_instalaciones_count': visitas_activas_queryset.count(),
-        
-        # Ajuste: Excluye a los entrevistados del conteo general del día
         'visitantes_dia_count': Visit.objects.filter(
             entry_time__date=hoy
         ).exclude(
             visitor__visitor_type='entrevistado'
         ).count(),
-        
         'entrevistas_count': Visit.objects.filter(
             visitor__visitor_type='entrevistado',
             entry_time__date=hoy
         ).count(),
-        
         'permisos_count': permisos_activos.count(),
     }
     

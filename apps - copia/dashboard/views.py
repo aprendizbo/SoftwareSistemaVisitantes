@@ -107,7 +107,7 @@ def dashboard(request):
     ultimos_movimientos_lista.sort(key=lambda x: x.exit_time if hasattr(x, 'exit_time') else x['exit_time'], reverse=True)
 
     # Paginación
-    paginator = Paginator(ultimos_movimientos_lista, 20)
+    paginator = Paginator(ultimos_movimientos_lista, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

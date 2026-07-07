@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2 class="mb-4">{{ titulo }}</h2>
+
+    <div class="card">
+        <div class="card-body">
+
+            {% if registros %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                {% if tipo == 'permiso' %}
+                                    <th>Empleado</th>
+                                    <th>Documento</th>
+                                    <th>Área</th>
+                                    <th>Tipo Permiso</th>
+                                    <th>Hora Salida</th>
+                                    <th>Estado</th>
+                                {% else %}
+                                    <th>Nombre</th>
+                                    <th>Documento</th>
+                                    <th>Tipo</th>
+                                    <th>Empresa</th>
+                                    <th>Hora Ingreso</th>
+                                    <th>Estado</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        {% for item in registros %}
+
+                            {% if tipo == 'permiso' %}
+                            <tr>
+                                <td>{{ item.employee }}</td>
+                                <td>
+                                    {% if item.employee.document_type == 'cedula' %}
+                                        CC
+                                    {% elif item.employee.document_type == 'ce' %}
+                                        CE
+                                    {% elif item.employee.document_type == 'pasaporte' %}
+                                        PAS
+                                    {% else %}
+                                        {{ item.employee.get_document_type_display }}
+                                    {% endif %}
+                                    {{ item.employee.employee_id }}
+                                </td>
+                                <td>{{ item.employee.area }}</td>
+                                <td>{{ item.get_permit_type_display }}</td>
+                                <td>{{ item.departure_time|date:"d/m/Y H:i" }}</td>
+                                <td>{{ item.status }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>
+                                    {{ item.visitor.first_name }} 
+                                    {{ item.visitor.last_name }}
+                                </td>
+                                <td>
+                                    {% if item.visitor.document_type == 'cedula' %}
+                                        CC
+                                    {% elif item.visitor.document_type == 'ce' %}
+                                        CE
+                                    {% elif item.visitor.document_type == 'pasaporte' %}
+                                        PAS
+                                    {% else %}
+                                        {{ item.visitor.get_document_type_display }}
+                                    {% endif %}
+                                    {{ item.visitor.document_id }}
+                                </td>
+                                <td>{{ item.visitor.get_visitor_type_display }}</td>
+                                <td>{{ item.visitor.company }}</td>
+                                <td>{{ item.entry_time|date:"d/m/Y H:i" }}</td>
+                                <td>{{ item.status }}</td>
+                            </tr>
+                            {% endif %}
+
+                        {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No existen registros.
+                </div>
+            {% endif %}
+
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                Volver al Dashboard
+            </a>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -137,3 +137,85 @@ def dashboard(request):
     }
     
     return render(request, 'visitors/dashboard.html', context)
+
+
+# =====================================
+# NUEVAS VISTAS DE DETALLE
+# =====================================
+
+@login_required
+def detalle_en_instalaciones(request):
+    hoy = timezone.now().date()
+    # Mismo filtro que en el dashboard: ingresados el día de hoy
+    visitas = Visit.objects.filter(
+        status='ingresado', 
+        entry_time__date=hoy
+    ).select_related('visitor').order_by('-entry_time')
+    
+    return render(
+        request,
+        'visitors/detalle_dashboard.html',
+        {
+            'titulo': 'Personal en Instalaciones',
+            'registros': visitas,
+            'tipo': 'visita'
+        }
+    )
+
+@login_required
+def detalle_visitantes_dia(request):
+    hoy = timezone.now().date()
+    # Excluye entrevistados
+    visitas = Visit.objects.filter(
+        entry_time__date=hoy
+    ).exclude(
+        visitor__visitor_type='entrevistado'
+    ).select_related('visitor').order_by('-entry_time')
+    
+    return render(
+        request,
+        'visitors/detalle_dashboard.html',
+        {
+            'titulo': 'Visitantes del Día',
+            'registros': visitas,
+            'tipo': 'visita'
+        }
+    )
+
+@login_required
+def detalle_entrevistas(request):
+    hoy = timezone.now().date()
+    # Solo entrevistados
+    visitas = Visit.objects.filter(
+        visitor__visitor_type='entrevistado', 
+        entry_time__date=hoy
+    ).select_related('visitor').order_by('-entry_time')
+    
+    return render(
+        request,
+        'visitors/detalle_dashboard.html',
+        {
+            'titulo': 'Entrevistas del Día',
+            'registros': visitas,
+            'tipo': 'visita'
+        }
+    )
+
+@login_required
+def detalle_permisos(request):
+    hoy = timezone.now().date()
+    # Filtra los EmployeePermission activos
+    permisos = EmployeePermission.objects.filter(
+        status='ACTIVO', 
+        departure_time__date=hoy
+    ).select_related('employee').order_by('-departure_time')
+    
+    return render(
+        request,
+        'visitors/detalle_dashboard.html',
+        {
+            'titulo': 'Permisos Activos',
+            'registros': permisos,
+            'tipo': 'permiso' # Útil en el HTML para diferenciar los campos a mostrar
+        }
+    )

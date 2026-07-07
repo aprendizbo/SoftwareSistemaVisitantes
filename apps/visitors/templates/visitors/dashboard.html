@@ -46,12 +46,15 @@
     </div>
 
     <div class="row g-3 mb-4">
+        
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card border-0 shadow-sm bg-primary text-white h-100">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <h6 class="text-uppercase fw-bold text-white-50 small">En Instalaciones</h6>
-                        <h2 class="mb-0 fw-bold">{{ en_instalaciones_count }}</h2>
+                        <a href="{% url 'dashboard:detalle_en_instalaciones' %}" class="text-white text-decoration-none">
+                            <h2 class="mb-0 fw-bold">{{ en_instalaciones_count }}</h2>
+                        </a>
                         <small class="text-white-50">visitantes activos ahora</small>
                     </div>
                     <i class="bi bi-people-fill display-5 opacity-50"></i>
@@ -64,7 +67,9 @@
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <h6 class="text-uppercase fw-bold text-white-50 small">Visitantes del Día</h6>
-                        <h2 class="mb-0 fw-bold">{{ visitantes_dia_count }}</h2>
+                        <a href="{% url 'dashboard:detalle_visitantes_dia' %}" class="text-white text-decoration-none">
+                            <h2 class="mb-0 fw-bold">{{ visitantes_dia_count }}</h2>
+                        </a>
                         <small class="text-white-50">registros de hoy</small>
                     </div>
                     <i class="bi bi-person-check-fill display-5 opacity-50"></i>
@@ -77,7 +82,9 @@
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <h6 class="text-uppercase fw-bold text-muted small">Entrevistas Hoy</h6>
-                        <h2 class="mb-0 fw-bold">{{ entrevistas_count }}</h2>
+                        <a href="{% url 'dashboard:detalle_entrevistas' %}" class="text-dark text-decoration-none">
+                            <h2 class="mb-0 fw-bold">{{ entrevistas_count }}</h2>
+                        </a>
                         <small class="text-muted">entrevistados registrados</small>
                     </div>
                     <i class="bi bi-clipboard-data-fill display-5 opacity-50"></i>
@@ -90,7 +97,9 @@
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <h6 class="text-uppercase fw-bold text-white-50 small">Permisos Activos</h6>
-                        <h2 class="mb-0 fw-bold">{{ permisos_count }}</h2>
+                        <a href="{% url 'dashboard:detalle_permisos' %}" class="text-white text-decoration-none">
+                            <h2 class="mb-0 fw-bold">{{ permisos_count }}</h2>
+                        </a>
                         <small class="text-white-50">empleados fuera</small>
                     </div>
                     <i class="bi bi-door-open-fill display-5 opacity-50"></i>
@@ -183,6 +192,7 @@
                                                     </a>
                                                 {% else %}
                                                     <span class="fw-bold text-truncate d-inline-block" style="max-width: 100%;">
+                                                        {{ whitespace_clean }}
                                                         {{ visita.visitor.first_name }}
                                                         {{ visita.visitor.last_name }}
                                                     </span>
@@ -438,4 +448,4 @@
     // Actualiza cada segundo
     setInterval(actualizarReloj, 1000);
 </script>
-{% endblock %}
+{% endblock %}  

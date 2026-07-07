@@ -161,8 +161,8 @@
                                                            class="fw-bold text-decoration-none"
                                                            data-bs-toggle="modal"
                                                            data-bs-target="#fotoModal{{ visita.id }}">
-                                                            {{ visita.visitor.first_name }}
-                                                            {{ visita.visitor.last_name }}
+                                                             {{ visita.visitor.first_name }}
+                                                             {{ visita.visitor.last_name }}
                                                         </a>
                                                     {% else %}
                                                         <span class="fw-bold text-truncate">
@@ -178,8 +178,8 @@
                                                        style="max-width: 100%;"
                                                        data-bs-toggle="modal"
                                                        data-bs-target="#fotoModal{{ visita.id }}">
-                                                        {{ visita.visitor.first_name }}
-                                                        {{ visita.visitor.last_name }}
+                                                         {{ visita.visitor.first_name }}
+                                                         {{ visita.visitor.last_name }}
                                                     </a>
                                                 {% else %}
                                                     <span class="fw-bold text-truncate d-inline-block" style="max-width: 100%;">
@@ -369,10 +369,12 @@
                                         {{ mov.tipo_accion|default:"Salió" }}
                                     </span>
                                     <small class="text-muted">
-                                        {% if mov.exit_time %}
-                                            Out: {{ mov.exit_time|time:"H:i" }}
+                                        {% if mov.tipo_accion == 'Regresó' %}
+                                            Regresó:<br>
+                                            {{ mov.exit_time|date:"d/m/Y H:i" }}
                                         {% else %}
-                                            In: {{ mov.entry_time|time:"H:i" }}
+                                            Salió:<br>
+                                            {{ mov.exit_time|date:"d/m/Y H:i" }}
                                         {% endif %}
                                     </small>
                                 </div>

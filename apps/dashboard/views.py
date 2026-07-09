@@ -218,4 +218,4 @@ def detalle_permisos(request):
             'registros': permisos,
             'tipo': 'permiso' # Útil en el HTML para diferenciar los campos a mostrar
         }
-    )
+    )   

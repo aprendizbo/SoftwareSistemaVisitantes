@@ -39,6 +39,9 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Número de Documento</label>
                             {{ visitor_form.document_id }}
+                            
+                            <div id="info-encontrado" class="alert alert-success mt-2" style="display:none;"></div>
+                            
                             {% if visitor_form.document_id.errors %}
                                 <div class="text-danger small">{{ visitor_form.document_id.errors }}</div>
                             {% endif %}
@@ -134,9 +137,15 @@
                     </button>
                     <canvas id="canvas-foto" width="320" height="240" style="display:none;"></canvas>
                     <br>
+                    
                     <img id="foto-preview"
-                         style="display:none; border: 3px solid #198754; border-radius: 5px; margin-top: 10px;"
-                         width="160" height="120" alt="Vista previa de foto">
+                         style="display:none;
+                                border:3px solid #198754;
+                                border-radius:5px;
+                                margin-top:10px;"
+                         width="160"
+                         height="120">
+                    
                     <input type="hidden" name="photo_base64" id="id_photo_base64">
                     <p class="text-muted small mt-1">La foto es recomendada pero no obligatoria</p>
                 </div>
@@ -213,6 +222,10 @@
 
 {% block extra_js %}
 <script>
+// VARIABLES GLOBALES CON RUTAS DINÁMICAS DE DJANGO
+const URL_BUSCAR_VISITANTE = "{% url 'visitors:buscar_visitante' %}";
+const URL_BUSCAR_EMPLEADO = "{% url 'visitors:buscar_empleado' %}";
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // ─── Cámara ───────────────────────────────────────────────
@@ -253,7 +266,80 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 400);
     }
 
+    // PASO 6: JavaScript añadido antes del cierre de DOMContentLoaded
+    const documentoInput = document.getElementById('id_document_id');
+    if(documentoInput){
+        documentoInput.addEventListener(
+            'blur',
+            buscarPersona
+        );
+    }
+
 });
+
+// PASO 6: Función buscarPersona añadida después de DOMContentLoaded
+function buscarPersona(){
+    const documento = document.getElementById('id_document_id').value;
+
+    if(!documento){
+        return;
+    }
+
+    const tipoIngreso = document.getElementById('id_visitor_type').value;
+
+    let url = '';
+
+    // SOLUCIÓN APLICADA: Uso de las variables inyectadas de Django
+    if(tipoIngreso === 'permiso_empleado'){
+        url = `${URL_BUSCAR_EMPLEADO}?document_id=${documento}`;
+    }
+    else{
+        url = `${URL_BUSCAR_VISITANTE}?document_id=${documento}`;
+    }
+
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+
+        if(!data.encontrado){
+            return;
+        }
+
+        const info = document.getElementById('info-encontrado');
+        info.style.display = 'block';
+
+        if(tipoIngreso === 'permiso_empleado'){
+
+            document.getElementById('id_first_name').value = data.nombre;
+            document.getElementById('id_area').value = data.area;
+
+            info.innerHTML = `
+                <strong>✓ EMPLEADO ENCONTRADO</strong><br>
+                ${data.nombre}<br>
+                Área: ${data.area}<br>
+                Permisos: ${data.total_permisos}
+            `;
+        }
+        else{
+
+            document.getElementById('id_first_name').value = data.first_name;
+            document.getElementById('id_last_name').value = data.last_name;
+            document.getElementById('id_company').value = data.company;
+
+            info.innerHTML = `
+                <strong>✓ VISITANTE ENCONTRADO</strong><br>
+                ${data.first_name} ${data.last_name}<br>
+                Visitas: ${data.total_visitas}
+            `;
+        }
+
+        if(data.foto){
+            const preview = document.getElementById('foto-preview');
+            preview.src = data.foto;
+            preview.style.display = 'inline-block';
+        }
+    });
+}
 
 function imprimirGafete() {
     const areaImpresion = document.getElementById('area-impresion');

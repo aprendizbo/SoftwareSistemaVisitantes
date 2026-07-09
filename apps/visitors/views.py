@@ -23,13 +23,9 @@ from apps.employees.models import Employee, EmployeePermission
 # =========================================================
 # FUNCIÓN AUXILIAR DE CORREO (ROBUSTA)
 # =========================================================
-def enviar_alerta_email(
-    asunto,
-    cuerpo,
-    destinatario,
-    imagen_bytes=None,
-    nombre_imagen="foto_recepcion.jpg"
-):
+def enviar_alerta_email(asunto, cuerpo, destinatario,
+                        imagen_bytes=None,
+                        nombre_imagen="foto_recepcion.jpg"):
     try:
         print(f"📧 Intentando enviar correo a: {destinatario}")
 
@@ -40,18 +36,25 @@ def enviar_alerta_email(
             [destinatario]
         )
 
+        print("IMAGEN ES NONE:", imagen_bytes is None)
+
         if imagen_bytes:
+            print("ADJUNTANDO FOTO:", len(imagen_bytes))
             email.attach(
-                nombre_imagen,
+                'PRUEBA_FOTO.jpg',
                 imagen_bytes,
                 'image/jpeg'
             )
+            print(email.attachments)
+
+        print("TOTAL ADJUNTOS:", len(email.attachments))
 
         email.send(fail_silently=False)
+
         print(f"✅ CORREO ENVIADO A: {destinatario}")
 
     except Exception as e:
-        print(f"❌ ERROR SMTP: {str(e)}")
+        print(f"❌ ERROR SMTP: {e}")
 
 
 # =========================================================
@@ -61,10 +64,30 @@ def enviar_alerta_email(
 @login_required
 def registrar_ingreso(request):
     if request.method == 'POST':
+        
+        # --- CÓDIGO TEMPORAL PARA DEBUG ---
+        print("====================================")
+        print("TIPO:", request.POST.get('visitor_type'))
+        print("PHOTO:", request.POST.get('photo_base64'))
+        print("LEN:", len(request.POST.get('photo_base64', '')))
+        print("====================================")
+        # ----------------------------------
+
         post_data = request.POST.copy()
         tipo_ingreso = post_data.get('visitor_type', '')
 
-        v_form = VisitorForm(post_data)
+        # CAMBIO APLICADO: Búsqueda de instancia previa para evitar conflictos de duplicados
+        visitor_instance = None
+        document_id = post_data.get('document_id')
+        if document_id:
+            visitor_instance = Visitor.objects.filter(
+                document_id=document_id
+            ).first()
+        
+        v_form = VisitorForm(
+            post_data,
+            instance=visitor_instance
+        )
         vi_form = VisitForm(post_data, request.FILES)
 
         es_permiso_empleado = (tipo_ingreso == 'permiso_empleado')
@@ -97,8 +120,10 @@ def registrar_ingreso(request):
 
             token_nuevo = get_random_string(length=8).upper()
             
-            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (ANTES DE CREAR EL PERMISO) ---
+            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (BLOQUE PERMISO) ---
             photo_data = request.POST.get('photo_base64', '')
+            print("PERMISO FOTO LEN:", len(photo_data))
+            print("PERMISO FOTO PRESENTE:", bool(photo_data))
             imagen_bytes_adjuntar = None
 
             if photo_data and 'base64,' in photo_data:
@@ -108,9 +133,38 @@ def registrar_ingreso(request):
                 except Exception:
                     pass
 
+            # --- NUEVO CÓDIGO AÑADIDO: Reutilizar foto de empleado ---
+            if not imagen_bytes_adjuntar:
+                ultimo_permiso = (
+                    EmployeePermission.objects
+                    .filter(
+                        employee=empleado,
+                        photo__isnull=False
+                    )
+                    .exclude(photo='')
+                    .order_by('-departure_time')
+                    .first()
+                )
+
+                if ultimo_permiso and ultimo_permiso.photo:
+                    try:
+                        with ultimo_permiso.photo.open('rb') as f:
+                            imagen_bytes_adjuntar = f.read()
+
+                        print(
+                            f"♻ REUTILIZANDO FOTO EMPLEADO: "
+                            f"{ultimo_permiso.photo.name}"
+                        )
+
+                    except Exception as e:
+                        print(
+                            "ERROR REUTILIZANDO FOTO EMPLEADO:",
+                            e
+                        )
+
             correo_destino = post_data.get('correo_notificar')
             
-            # --- MODIFICADO: CREACIÓN DEL PERMISO CON DETALLE ADICIONAL ---
+            # --- CREACIÓN DEL PERMISO ---
             permiso = EmployeePermission.objects.create(
                 employee=empleado,
                 permit_type=tipo_permiso,
@@ -120,8 +174,8 @@ def registrar_ingreso(request):
                 detalle_adicional=post_data.get('reason_detail', '')
             )
 
-            # --- GUARDADO DEL ARCHIVO EN EL MODELO DE PERMISOS ---
-            if imagen_bytes_adjuntar:
+            # --- CAMBIO APLICADO: Verificación combinada de foto ---
+            if imagen_bytes_adjuntar and not permiso.photo:
                 permiso.photo.save(
                     f"permiso_{permiso.id}.jpg",
                     ContentFile(imagen_bytes_adjuntar),
@@ -129,14 +183,7 @@ def registrar_ingreso(request):
                 )
 
             asunto_emp = f"🚨 Empleado en Permiso: {empleado.name}"
-            
-            # --- MODIFICADO: CONSTRUCCIÓN DINÁMICA DEL CUERPO DEL CORREO ---
-            detalle_permiso = ""
-
-            if permiso.detalle_adicional:
-                detalle_permiso = (
-                    f"• Detalle Adicional: {permiso.detalle_adicional}\n"
-                )
+            detalle_permiso = f"• Detalle Adicional: {permiso.detalle_adicional}\n" if permiso.detalle_adicional else ""
 
             cuerpo_emp = (
                 f"Se informa la salida de un empleado bajo modalidad de permiso.\n\n"
@@ -151,22 +198,15 @@ def registrar_ingreso(request):
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
 
-            # --- ENVÍO DE EMAIL CON LA IMAGEN ADJUNTADA ---
             if permiso.correo_notificar:
-                enviar_alerta_email(
-                    asunto_emp,
-                    cuerpo_emp,
-                    permiso.correo_notificar,
-                    imagen_bytes_adjuntar
-                )
+                enviar_alerta_email(asunto_emp, cuerpo_emp, permiso.correo_notificar, imagen_bytes_adjuntar)
 
+            # Generación de QR en Base64
             qr = qrcode.QRCode(version=1, box_size=8, border=4)
             qr.add_data(permiso.token_qr)
             qr.make(fit=True)
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-
             buffer = io.BytesIO()
-            qr_img.save(buffer, format='PNG')
+            qr.make_image(fill_color="black", back_color="white").save(buffer, format='PNG')
             qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
             visit_mock = {
@@ -181,7 +221,7 @@ def registrar_ingreso(request):
                 },
                 'token_qr': permiso.token_qr,
                 'area': empleado.area,
-                'entry_time': permiso.departure_time if hasattr(permiso, 'departure_time') else timezone.now(),
+                'entry_time': getattr(permiso, 'departure_time', timezone.now()),
             }
 
             return render(request, 'visitors/registrar_ingreso.html', {
@@ -222,80 +262,88 @@ def registrar_ingreso(request):
             visit.correo_notificar = vi_form.cleaned_data.get('correo_notificar')
             visit.save()
 
+            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (BLOQUE VISITANTE) ---
             photo_data = request.POST.get('photo_base64', '')
+            print("VISITANTE FOTO LEN:", len(photo_data))
+            print("VISITANTE FOTO PRESENTE:", bool(photo_data))
             imagen_bytes_adjuntar = None
-            
+
             if photo_data and 'base64,' in photo_data:
                 try:
                     fmt, imgstr = photo_data.split(';base64,')
                     imagen_bytes_adjuntar = base64.b64decode(imgstr)
-                    visit.photo.save(f"visita_{visit.id}.jpg", ContentFile(imagen_bytes_adjuntar), save=True)
-                except Exception:
-                    pass
+
+                    visit.photo.save(
+                        f"visita_{visit.id}.jpg",
+                        ContentFile(imagen_bytes_adjuntar),
+                        save=True
+                    )
+                    print("📷 FOTO NUEVA CAPTURADA")
+
+                except Exception as e:
+                    print("ERROR FOTO:", e)
+
+            # Si NO tomó foto nueva, reutilizar la última foto
+            if not imagen_bytes_adjuntar:
+                ultima_visita_con_foto = (
+                    Visit.objects
+                    .filter(
+                        visitor=visitor_db,
+                        photo__isnull=False
+                    )
+                    .exclude(photo='')
+                    .order_by('-entry_time')
+                    .first()
+                )
+
+                if ultima_visita_con_foto and ultima_visita_con_foto.photo:
+                    try:
+                        with ultima_visita_con_foto.photo.open('rb') as f:
+                            imagen_bytes_adjuntar = f.read()
+
+                        visit.photo = ultima_visita_con_foto.photo
+                        visit.save(update_fields=['photo'])
+
+                        print(
+                            f"♻ REUTILIZANDO FOTO: "
+                            f"{ultima_visita_con_foto.photo.name}"
+                        )
+
+                    except Exception as e:
+                        print("ERROR REUTILIZANDO FOTO:", e)
 
             correo_destino = visit.correo_notificar
             nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
             
-            # --- MODIFICADO: ASUNTO DEPENDIENDO DEL TIPO DE VISITANTE ---
-            if visitor_db.visitor_type == 'entrevistado':
-                asunto_vis = f"👤 Entrevistado en Instalaciones: {nom_completo}"
-            else:
-                asunto_vis = f"🔔 Visitante en Instalaciones: {nom_completo}"
+            es_entrevistado = (visitor_db.visitor_type == 'entrevistado')
+            asunto_vis = f"{'👤 Entrevistado' if es_entrevistado else '🔔 Visitante'} en Instalaciones: {nom_completo}"
+            detalle_adicional = f"• Detalle Adicional: {visit.reason_detail}\n" if visit.reason_detail else ""
 
-            # CONDICIONAL PARA EL DETALLE ADICIONAL
-            detalle_adicional = ""
-            if visit.reason_detail:
-                detalle_adicional = f"• Detalle Adicional: {visit.reason_detail}\n"
-
-            # --- MODIFICADO: CUERPO DEPENDIENDO DEL TIPO DE VISITANTE ---
-            if visitor_db.visitor_type == 'entrevistado':
-                cuerpo_vis = (
-                    f"Se informa el ingreso de un entrevistado.\n\n"
-                    f"• Nombre Completo: {nom_completo}\n"
-                    f"• Tipo de Documento: {visitor_db.get_document_type_display()}\n"
-                    f"• Número de Documento: {visitor_db.document_id}\n"
-                    f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
-                    f"• Persona a Visitar: {visit.person_to_visit}\n"
-                    f"• Área de Destino: {visit.area}\n"
-                    f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
-                    f"{detalle_adicional}"
-                    f"• Token QR de Control: {visit.token_qr}\n"
-                    f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
-                    f"Se adjunta la fotografía tomada en recepción.\n\n"
-                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
-                )
-            else:
-                cuerpo_vis = (
-                    f"Se informa el ingreso de un visitante externo.\n\n"
-                    f"• Nombre Completo: {nom_completo}\n"
-                    f"• Tipo de Documento: {visitor_db.get_document_type_display()}\n"
-                    f"• Número de Documento: {visitor_db.document_id}\n"
-                    f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
-                    f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
-                    f"• Persona a Visitar: {visit.person_to_visit}\n"
-                    f"• Área de Destino: {visit.area}\n"
-                    f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
-                    f"{detalle_adicional}"
-                    f"• Token QR de Control: {visit.token_qr}\n"
-                    f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
-                    f"Se adjunta la fotografía tomada en recepción.\n\n"
-                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
-                )
-
-            enviar_alerta_email(
-                asunto_vis,
-                cuerpo_vis,
-                correo_destino,
-                imagen_bytes_adjuntar
+            cuerpo_vis = (
+                f"Se informa el ingreso de un {'entrevistado' if es_entrevistado else 'visitante externo'}.\n\n"
+                f"• Nombre Completo: {nom_completo}\n"
+                f"• Tipo de Documento: {visitor_db.get_document_type_display()}\n"
+                f"• Número de Documento: {visitor_db.document_id}\n"
+                f"• Tipo de Visitante: {visitor_db.get_visitor_type_display()}\n"
+                f"• Empresa / Procedencia: {visitor_db.company or 'Particular'}\n"
+                f"• Persona a Visitar: {visit.person_to_visit}\n"
+                f"• Área de Destino: {visit.area}\n"
+                f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
+                f"{detalle_adicional}"
+                f"• Token QR de Control: {visit.token_qr}\n"
+                f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
+                f"Se adjunta la fotografía tomada en recepción.\n\n"
+                f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
 
+            enviar_alerta_email(asunto_vis, cuerpo_vis, correo_destino, imagen_bytes_adjuntar)
+
+            # Generación de QR
             qr = qrcode.QRCode(version=1, box_size=8, border=4)
             qr.add_data(visit.token_qr)
             qr.make(fit=True)
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-
             buffer = io.BytesIO()
-            qr_img.save(buffer, format='PNG')
+            qr.make_image(fill_color="black", back_color="white").save(buffer, format='PNG')
             qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
             return render(request, 'visitors/registrar_ingreso.html', {
@@ -305,11 +353,20 @@ def registrar_ingreso(request):
                 'v_exitosa': visit,
             })
             
-        else:
-            messages.error(request, "Error al registrar. Por favor verifica que todos los campos requeridos estén llenos.")
-            return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': v_form, 'visit_form': vi_form})
+        # Si la petición es POST pero fallaron las validaciones de los formularios en el Flujo B
+        messages.error(request, "Error al registrar. Por favor verifica que todos los campos requeridos estén llenos.")
+        return render(request, 'visitors/registrar_ingreso.html', {
+            'visitor_form': v_form,
+            'visit_form': vi_form
+        })
 
-    return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': VisitorForm(), 'visit_form': VisitForm()})
+    # =========================================================
+    # FLUJO C: SOLICITUD GET (Carga inicial de la página)
+    # =========================================================
+    return render(request, 'visitors/registrar_ingreso.html', {
+        'visitor_form': VisitorForm(),
+        'visit_form': VisitForm()
+    })
 
 
 @login_required
@@ -331,7 +388,7 @@ def checkout_por_token(request, token):
         visit_mock = {
             'id': permiso.id,
             'token_qr': permiso.token_qr,
-            'entry_time': permiso.departure_time if hasattr(permiso, 'departure_time') else timezone.now(),
+            'entry_time': getattr(permiso, 'departure_time', timezone.now()),
             'area': permiso.employee.area,
             'visitor': {
                 'first_name': permiso.employee.name, 
@@ -357,21 +414,16 @@ def confirmar_checkout(request, visit_id):
             permiso.return_time = timezone.now()
             permiso.save()
 
-            asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
-            cuerpo_ret = (
-                f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-                f"• Empleado: {permiso.employee.name}\n"
-                f"• Área/Departamento: {permiso.employee.area}\n"
-                f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
-                f"Atentamente,\nSistema de Control de Accesos Boccherini."
-            )
-            
             if permiso.correo_notificar:
-                enviar_alerta_email(
-                    asunto_ret,
-                    cuerpo_ret,
-                    permiso.correo_notificar
+                asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+                cuerpo_ret = (
+                    f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
+                    f"• Empleado: {permiso.employee.name}\n"
+                    f"• Área/Departamento: {permiso.employee.area}\n"
+                    f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
+                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
+                enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
             return JsonResponse({'ok': True, 'nombre': permiso.employee.name, 'token': permiso.token_qr, 'exit_time': permiso.return_time.strftime('%H:%M')})
         except EmployeePermission.DoesNotExist:
@@ -384,7 +436,6 @@ def confirmar_checkout(request, visit_id):
             visit.exit_time = timezone.now()
             visit.save()
 
-            # --- NUEVO BLOQUE ADAPTADO SIN CONFIGURACIÓN POR ÁREA ---
             if visit.correo_notificar:
                 nom_completo = f"{visit.visitor.first_name} {visit.visitor.last_name}"
                 asunto_sal = f"🚪 Salida de Visitante: {nom_completo}"
@@ -396,11 +447,7 @@ def confirmar_checkout(request, visit_id):
                     f"• Hora de Salida: {timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
-                enviar_alerta_email(
-                    asunto_sal,
-                    cuerpo_sal,
-                    visit.correo_notificar
-                )
+                enviar_alerta_email(asunto_sal, cuerpo_sal, visit.correo_notificar)
 
             return JsonResponse({'ok': True, 'nombre': f"{visit.visitor.first_name}", 'token': visit.token_qr, 'exit_time': visit.exit_time.strftime('%H:%M')})
         except Visit.DoesNotExist:
@@ -410,31 +457,25 @@ def confirmar_checkout(request, visit_id):
 @login_required
 def registrar_salida(request, visita_id):
     if request.method == 'POST':
-        permiso_query = EmployeePermission.objects.filter(id=visita_id, status='ACTIVO')
+        permiso = EmployeePermission.objects.filter(id=visita_id, status='ACTIVO').first()
         
-        if permiso_query.exists():
-            p = permiso_query.first()
-            p.status = 'FINALIZADO'
-            p.return_time = timezone.now()
-            p.save()
+        if permiso:
+            permiso.status = 'FINALIZADO'
+            permiso.return_time = timezone.now()
+            permiso.save()
 
-            asunto_ret = f"✅ Retorno de Empleado: {p.employee.name}"
-            cuerpo_ret = (
-                f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-                f"• Empleado: {p.employee.name}\n"
-                f"• Área/Departamento: {p.employee.area}\n"
-                f"• Hora de Retorno: {p.return_time.strftime('%H:%M')}\n\n"
-                f"Atentamente,\nSistema de Control de Accesos Boccherini."
-            )
-            
-            if p.correo_notificar:
-                enviar_alerta_email(
-                    asunto_ret,
-                    cuerpo_ret,
-                    p.correo_notificar
+            if permiso.correo_notificar:
+                asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+                cuerpo_ret = (
+                    f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
+                    f"• Empleado: {permiso.employee.name}\n"
+                    f"• Área/Departamento: {permiso.employee.area}\n"
+                    f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
+                    f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
+                enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
-            messages.success(request, f"Re-ingreso laboral registrado para {p.employee.name}.")
+            messages.success(request, f"Re-ingreso laboral registrado para {permiso.employee.name}.")
             
         else:
             visit = get_object_or_404(Visit, id=visita_id, status='ingresado')
@@ -442,7 +483,6 @@ def registrar_salida(request, visita_id):
             visit.exit_time = timezone.now()
             visit.save()
 
-            # --- NUEVO BLOQUE ADAPTADO EN REGISTRAR_SALIDA ---
             if visit.correo_notificar:
                 nom_completo = f"{visit.visitor.first_name} {visit.visitor.last_name}"
                 asunto_sal = f"🚪 Salida de Visitante: {nom_completo}"
@@ -454,13 +494,10 @@ def registrar_salida(request, visita_id):
                     f"• Hora de Salida: {timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
-                enviar_alerta_email(
-                    asunto_sal,
-                    cuerpo_sal,
-                    visit.correo_notificar
-                )
+                enviar_alerta_email(asunto_sal, cuerpo_sal, visit.correo_notificar)
 
             messages.success(request, f"Salida registrada exitosamente para {visit.visitor.first_name} {visit.visitor.last_name}.")
+            
     return redirect('dashboard:dashboard')
 
 
@@ -471,22 +508,17 @@ def registrar_regreso_empleado(request, permiso_id):
         permiso.status = 'FINALIZADO'
         permiso.return_time = timezone.now()
         permiso.save()
-
-        asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
-        cuerpo_ret = (
-            f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-            f"• Empleado: {permiso.employee.name}\n"
-            f"• Área/Departamento: {permiso.employee.area}\n"
-            f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
-            f"Atentamente,\nSistema de Control de Accesos Boccherini."
-        )
         
         if permiso.correo_notificar:
-            enviar_alerta_email(
-                asunto_ret,
-                cuerpo_ret,
-                permiso.correo_notificar
+            asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+            cuerpo_ret = (
+                f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
+                f"• Empleado: {permiso.employee.name}\n"
+                f"• Área/Departamento: {permiso.employee.area}\n"
+                f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
+                f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
+            enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
         messages.success(request, f"Re-ingreso registrado correctamente para {permiso.employee.name}.")
     return redirect('dashboard:dashboard')
@@ -509,3 +541,77 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+# =========================================================
+# VISTAS PARA BÚSQUEDA ASÍNCRONA (JSON)
+# =========================================================
+
+@login_required
+def buscar_visitante(request):
+    document_id = request.GET.get('document_id')
+
+    if not document_id:
+        return JsonResponse({'encontrado': False})
+
+    try:
+        visitante = Visitor.objects.get(document_id=document_id)
+        visitas = Visit.objects.filter(visitor=visitante).order_by('-entry_time')
+        ultima_visita = visitas.first()
+
+        historial = [
+            {
+                'fecha': timezone.localtime(v.entry_time).strftime('%d/%m/%Y %H:%M'),
+                'area': v.area
+            }
+            for v in visitas[:5]
+        ]
+
+        return JsonResponse({
+            'encontrado': True,
+            'first_name': getattr(visitante, 'first_name', ''),
+            'last_name': getattr(visitante, 'last_name', ''),
+            'company': getattr(visitante, 'company', ''),
+            'document_type': getattr(visitante, 'document_type', 'CC'),
+            'total_visitas': visitas.count(),
+            'historial': historial,
+            'foto': ultima_visita.photo.url if ultima_visita and ultima_visita.photo else ''
+        })
+
+    except Visitor.DoesNotExist:
+        return JsonResponse({'encontrado': False})
+
+
+@login_required
+def buscar_empleado(request):
+    document_id = request.GET.get('document_id')
+
+    if not document_id:
+        return JsonResponse({'encontrado': False})
+
+    try:
+        empleado = Employee.objects.get(employee_id=document_id)
+        permisos = EmployeePermission.objects.filter(employee=empleado).order_by('-departure_time')
+        
+        historial = [
+            {
+                'fecha': timezone.localtime(p.departure_time).strftime('%d/%m/%Y %H:%M'),
+                'tipo': getattr(p, 'permit_type', 'PERSONAL')
+            }
+            for p in permisos[:5]
+        ]
+
+        ultima_foto = permisos.filter(photo__isnull=False).first()
+
+        return JsonResponse({
+            'encontrado': True,
+            'nombre': getattr(empleado, 'name', ''),
+            'area': getattr(empleado, 'area', ''),
+            'document_type': getattr(empleado, 'document_type', 'CC'),
+            'total_permisos': permisos.count(),
+            'historial': historial,
+            'foto': ultima_foto.photo.url if ultima_foto and ultima_foto.photo else ''
+        })
+
+    except Employee.DoesNotExist:
+        return JsonResponse({'encontrado': False})

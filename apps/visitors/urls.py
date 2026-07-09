@@ -17,4 +17,16 @@ urlpatterns = [
 
     # Re-ingreso manual de Empleados desde el Dashboard (CORREGIDO: name ahora es regreso_empleado)
     path('regreso-empleado/<int:permiso_id>/', views.registrar_regreso_empleado, name='regreso_empleado'),
+
+    # Búsquedas asíncronas para autocompletado en el formulario
+    path(
+        'buscar-visitante/',
+        views.buscar_visitante,
+        name='buscar_visitante'
+    ),
+    path(
+        'buscar-empleado/',
+        views.buscar_empleado,
+        name='buscar_empleado'
+    ),
 ]

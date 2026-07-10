@@ -37,7 +37,7 @@ def extraer_permisos_csv(modeladmin, request, queryset):
         
         writer.writerow([
             p.id,
-            f"{p.employee.first_name} {p.employee.last_name}" if p.employee else 'N/A',
+            f"{p.employee.first_name} {p.employee.last_name}" if p.employee else "N/A",
             p.get_permit_type_display(),
             # Usamos formato YYYY-MM-DD HH:MM para que Excel lo interprete como fecha
             salida.strftime('%Y-%m-%d %H:%M') if salida else '',
@@ -87,8 +87,8 @@ def extraer_permisos_excel(modeladmin, request, queryset):
         salida = get_bogota_time(p.departure_time)
         regreso = get_bogota_time(p.return_time)
 
-        # Extracción segura de atributos combinando primer nombre y apellido
-        nombre = f"{p.employee.first_name} {p.employee.last_name}" if p.employee else ''
+        # Extracción segura con nombre completo concatenado
+        nombre = f"{p.employee.first_name} {p.employee.last_name}" if p.employee else ""
         tipo_doc = getattr(p.employee, 'document_type', 'N/A')
         documento = getattr(p.employee, 'employee_id', 'N/A')
         area = getattr(p.employee, 'area', 'N/A')
@@ -142,16 +142,33 @@ def extraer_permisos_excel(modeladmin, request, queryset):
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'employee_id', 'area')
-    search_fields = ('first_name', 'last_name', 'employee_id', 'area')
+    list_display = (
+        'first_name',
+        'last_name',
+        'employee_id',
+        'area'
+    )
+
+    search_fields = (
+        'first_name',
+        'last_name',
+        'employee_id',
+        'area'
+    )
 
 
 @admin.register(EmployeePermission)
 class EmployeePermissionAdmin(admin.ModelAdmin):
     list_display = ('employee', 'permit_type', 'departure_time', 'return_time', 'status', 'detalle_adicional')
     list_filter = ('status', 'permit_type')
-    # Actualizado para buscar por los nuevos campos relacionados
-    search_fields = ('employee__first_name', 'employee__last_name', 'detalle_adicional')
+    
+    search_fields = (
+        'employee__first_name',
+        'employee__last_name',
+        'employee__employee_id',
+        'detalle_adicional'
+    )
+    
     actions = [
         extraer_permisos_csv,
         extraer_permisos_excel,

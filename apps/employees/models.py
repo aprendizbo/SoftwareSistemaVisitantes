@@ -9,9 +9,16 @@ class Employee(models.Model):
         ('pasaporte', 'PAS'),
     ]
 
-    name = models.CharField(max_length=150, verbose_name="Nombre Completo")
+    first_name = models.CharField(max_length=100, verbose_name="Nombre")
+    last_name = models.CharField(max_length=100, verbose_name="Apellido")
     
-    # --- CAMPO NUEVO PROFESIONAL ---
+    company = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name="Empresa"
+    )
+    
     document_type = models.CharField(
         max_length=20,
         choices=DOCUMENT_CHOICES,
@@ -23,7 +30,7 @@ class Employee(models.Model):
     area = models.CharField(max_length=100, verbose_name="Área de Trabajo", blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.first_name} {self.last_name}"
 
     class Meta:
         verbose_name = "Empleado"
@@ -43,13 +50,10 @@ class EmployeePermission(models.Model):
     departure_time = models.DateTimeField(auto_now_add=True, verbose_name="Hora de Salida")
     return_time = models.DateTimeField(null=True, blank=True, verbose_name="Hora de Regreso")
     
-    # --- CAMPO NUEVO ADAPTADO ---
     detalle_adicional = models.TextField(blank=True, null=True, verbose_name="Detalle / Justificación")
     
-    # --- NUEVO CAMPO PARA NOTIFICACIONES MANUALES ---
     correo_notificar = models.EmailField(max_length=254, verbose_name="Correo a Notificar", blank=True, null=True)
     
-    # --- CAMPO DE FOTOGRAFÍA ADAPTADO ---
     photo = models.ImageField(
         upload_to='empleados_permisos/',
         blank=True,
@@ -57,12 +61,11 @@ class EmployeePermission(models.Model):
         verbose_name='Foto'
     )
     
-    # --- FIX LIMPIO: Se removió unique=True y se agregó null=True ---
     token_qr = models.CharField(max_length=8, editable=False, blank=True, null=True, verbose_name='Token QR')
     status = models.CharField(max_length=20, default='ACTIVO', verbose_name="Estado")
 
     def __str__(self):
-        return f"{self.employee.name} - {self.permit_type}"
+        return f"{self.employee.first_name} {self.employee.last_name} - {self.permit_type}"
 
     class Meta:
         verbose_name = "Permiso de Empleado"

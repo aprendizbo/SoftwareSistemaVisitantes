@@ -76,7 +76,6 @@ def registrar_ingreso(request):
         post_data = request.POST.copy()
         tipo_ingreso = post_data.get('visitor_type', '')
 
-        # CAMBIO APLICADO: Búsqueda de instancia previa para evitar conflictos de duplicados
         visitor_instance = None
         document_id = post_data.get('document_id')
         if document_id:
@@ -100,19 +99,33 @@ def registrar_ingreso(request):
             first_name = post_data.get('first_name', '')
             last_name = post_data.get('last_name', '')
             area_empleado = post_data.get('area', 'RECEPCION')
+            empresa_empleado = post_data.get('company', '')
             motivo_form = post_data.get('reason_type', 'PERSONAL')
 
             if not document_id:
                 messages.error(request, "El número de documento es obligatorio para procesar el permiso.")
                 return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': v_form, 'visit_form': vi_form})
 
-            empleado, _ = Employee.objects.get_or_create(
+            # --- CORRECCIÓN APLICADA AQUÍ: Guardar first_name y last_name ---
+            empleado, creado = Employee.objects.get_or_create(
                 employee_id=document_id,
                 defaults={
-                    'name': f"{first_name} {last_name}".strip(),
-                    'area': area_empleado
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'document_type': post_data.get('document_type', 'cedula'),
+                    'area': area_empleado,
+                    'company': empresa_empleado,
                 }
             )
+
+            if not creado:
+                empleado.first_name = first_name
+                empleado.last_name = last_name
+                empleado.area = area_empleado
+                empleado.company = empresa_empleado
+                empleado.document_type = post_data.get('document_type', 'cedula')
+                empleado.save()
+            # --------------------------------------------------------
 
             tipo_permiso = 'LABORAL'
             if motivo_form == 'entrevista': tipo_permiso = 'MEDICINA'
@@ -182,12 +195,14 @@ def registrar_ingreso(request):
                     save=True
                 )
 
-            asunto_emp = f"🚨 Empleado en Permiso: {empleado.name}"
+            # Referencias a nombre actualizadas
+            nombre_completo_emp = f"{empleado.first_name} {empleado.last_name}"
+            asunto_emp = f"🚨 Empleado en Permiso: {nombre_completo_emp}"
             detalle_permiso = f"• Detalle Adicional: {permiso.detalle_adicional}\n" if permiso.detalle_adicional else ""
 
             cuerpo_emp = (
                 f"Se informa la salida de un empleado bajo modalidad de permiso.\n\n"
-                f"• Empleado: {empleado.name}\n"
+                f"• Empleado: {nombre_completo_emp}\n"
                 f"• Documento: {document_id}\n"
                 f"• Área/Departamento: {empleado.area}\n"
                 f"• Tipo de Permiso: {tipo_permiso}\n"
@@ -213,8 +228,8 @@ def registrar_ingreso(request):
                 'id': permiso.id,
                 'is_employee_mock': True,
                 'visitor': {
-                    'first_name': empleado.name, 
-                    'last_name': '', 
+                    'first_name': empleado.first_name, 
+                    'last_name': empleado.last_name, 
                     'visitor_type': 'permiso_empleado',
                     'get_visitor_type_display': 'Permiso de Empleado',
                     'company': 'PERSONAL INTERNO'
@@ -391,8 +406,8 @@ def checkout_por_token(request, token):
             'entry_time': getattr(permiso, 'departure_time', timezone.now()),
             'area': permiso.employee.area,
             'visitor': {
-                'first_name': permiso.employee.name, 
-                'last_name': '', 
+                'first_name': permiso.employee.first_name, 
+                'last_name': permiso.employee.last_name, 
                 'visitor_type': 'permiso_empleado',
                 'company': 'PERSONAL INTERNO'
             }
@@ -414,18 +429,20 @@ def confirmar_checkout(request, visit_id):
             permiso.return_time = timezone.now()
             permiso.save()
 
+            nombre_completo_emp = f"{permiso.employee.first_name} {permiso.employee.last_name}"
+
             if permiso.correo_notificar:
-                asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+                asunto_ret = f"✅ Retorno de Empleado: {nombre_completo_emp}"
                 cuerpo_ret = (
                     f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-                    f"• Empleado: {permiso.employee.name}\n"
+                    f"• Empleado: {nombre_completo_emp}\n"
                     f"• Área/Departamento: {permiso.employee.area}\n"
                     f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
                 enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
-            return JsonResponse({'ok': True, 'nombre': permiso.employee.name, 'token': permiso.token_qr, 'exit_time': permiso.return_time.strftime('%H:%M')})
+            return JsonResponse({'ok': True, 'nombre': nombre_completo_emp, 'token': permiso.token_qr, 'exit_time': permiso.return_time.strftime('%H:%M')})
         except EmployeePermission.DoesNotExist:
             return JsonResponse({'ok': False, 'error': 'No encontrado.'}, status=404)
             
@@ -464,18 +481,20 @@ def registrar_salida(request, visita_id):
             permiso.return_time = timezone.now()
             permiso.save()
 
+            nombre_completo_emp = f"{permiso.employee.first_name} {permiso.employee.last_name}"
+
             if permiso.correo_notificar:
-                asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+                asunto_ret = f"✅ Retorno de Empleado: {nombre_completo_emp}"
                 cuerpo_ret = (
                     f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-                    f"• Empleado: {permiso.employee.name}\n"
+                    f"• Empleado: {nombre_completo_emp}\n"
                     f"• Área/Departamento: {permiso.employee.area}\n"
                     f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
                     f"Atentamente,\nSistema de Control de Accesos Boccherini."
                 )
                 enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
-            messages.success(request, f"Re-ingreso laboral registrado para {permiso.employee.name}.")
+            messages.success(request, f"Re-ingreso laboral registrado para {nombre_completo_emp}.")
             
         else:
             visit = get_object_or_404(Visit, id=visita_id, status='ingresado')
@@ -508,19 +527,21 @@ def registrar_regreso_empleado(request, permiso_id):
         permiso.status = 'FINALIZADO'
         permiso.return_time = timezone.now()
         permiso.save()
+
+        nombre_completo_emp = f"{permiso.employee.first_name} {permiso.employee.last_name}"
         
         if permiso.correo_notificar:
-            asunto_ret = f"✅ Retorno de Empleado: {permiso.employee.name}"
+            asunto_ret = f"✅ Retorno de Empleado: {nombre_completo_emp}"
             cuerpo_ret = (
                 f"Se informa que el empleado ha retornado a las instalaciones finalizando su permiso.\n\n"
-                f"• Empleado: {permiso.employee.name}\n"
+                f"• Empleado: {nombre_completo_emp}\n"
                 f"• Área/Departamento: {permiso.employee.area}\n"
                 f"• Hora de Retorno: {timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
             )
             enviar_alerta_email(asunto_ret, cuerpo_ret, permiso.correo_notificar)
 
-        messages.success(request, f"Re-ingreso registrado correctamente para {permiso.employee.name}.")
+        messages.success(request, f"Re-ingreso registrado correctamente para {nombre_completo_emp}.")
     return redirect('dashboard:dashboard')
 
 
@@ -582,6 +603,7 @@ def buscar_visitante(request):
         return JsonResponse({'encontrado': False})
 
 
+# --- CORRECCIÓN APLICADA: Respuesta JSON con first_name y last_name ---
 @login_required
 def buscar_empleado(request):
     document_id = request.GET.get('document_id')
@@ -605,9 +627,11 @@ def buscar_empleado(request):
 
         return JsonResponse({
             'encontrado': True,
-            'nombre': getattr(empleado, 'name', ''),
+            'first_name': empleado.first_name,
+            'last_name': empleado.last_name,
             'area': getattr(empleado, 'area', ''),
-            'document_type': getattr(empleado, 'document_type', 'CC'),
+            'company': getattr(empleado, 'company', ''),
+            'document_type': getattr(empleado, 'document_type', 'cedula'),
             'total_permisos': permisos.count(),
             'historial': historial,
             'foto': ultima_foto.photo.url if ultima_foto and ultima_foto.photo else ''

@@ -78,7 +78,7 @@
 
                     <div class="col-md-6">
                         <h5 class="mb-3 text-secondary border-bottom pb-2">
-                            <i class="bi bi-clipboard-fill"></i> Detalles del Registro   </h5>
+                            <i class="bi bi-clipboard-fill"></i> Detalles del Registro    </h5>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Motivo</label>  {{ visit_form.reason_type }}
@@ -128,7 +128,7 @@
 
                 <div class="text-center mb-4">
                     <h5 class="text-secondary border-bottom pb-2">
-                        <i class="bi bi-camera-fill"></i> Fotografía de Identificación   </h5>
+                        <i class="bi bi-camera-fill"></i> Fotografía de Identificación    </h5>
                     <video id="webcam" width="320" height="240" autoplay playsinline
                            class="border rounded bg-dark d-block mx-auto"></video>
                     <br>
@@ -164,7 +164,7 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="qrModalLabel">
-                    <i class="bi bi-check-circle-fill"></i> ¡Registro Procesado con Éxito!   </h5>
+                    <i class="bi bi-check-circle-fill"></i> ¡Registro Procesado con Éxito!    </h5>
             </div>
             <div class="modal-body text-center py-4">
                 <p class="fs-5 mb-1">
@@ -275,17 +275,25 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
+    // TERCER CAMBIO: Agregar evento 'change' al select de tipo de visitante
+    const tipoSelect = document.getElementById('id_visitor_type');
+    if(tipoSelect){
+        tipoSelect.addEventListener(
+            'change',
+            buscarPersona
+        );
+    }
+
 });
 
 // PASO 6: Función buscarPersona añadida después de DOMContentLoaded
 function buscarPersona(){
     const documento = document.getElementById('id_document_id').value;
+    const tipoIngreso = document.getElementById('id_visitor_type').value;
 
     if(!documento){
         return;
     }
-
-    const tipoIngreso = document.getElementById('id_visitor_type').value;
 
     let url = '';
 
@@ -297,10 +305,10 @@ function buscarPersona(){
         url = `${URL_BUSCAR_VISITANTE}?document_id=${documento}`;
     }
 
-    fetch(url)
-    .then(response => response.json())
+    fetch(url).then(response => {
+        return response.json();
+    })
     .then(data => {
-
         if(!data.encontrado){
             return;
         }
@@ -309,27 +317,41 @@ function buscarPersona(){
         info.style.display = 'block';
 
         if(tipoIngreso === 'permiso_empleado'){
+            document.getElementById('id_first_name').value = data.first_name || '';
+            document.getElementById('id_last_name').value = data.last_name || '';
+            
+            if(document.getElementById('id_company')){
+                document.getElementById('id_company').value = data.company || '';
+            }
 
-            document.getElementById('id_first_name').value = data.nombre;
-            document.getElementById('id_area').value = data.area;
+            if(document.getElementById('id_area')){
+                document.getElementById('id_area').value = data.area || '';
+            }
+
+            if(document.getElementById('id_document_type')){
+                document.getElementById('id_document_type').value = data.document_type || 'cedula';
+            }
 
             info.innerHTML = `
                 <strong>✓ EMPLEADO ENCONTRADO</strong><br>
-                ${data.nombre}<br>
-                Área: ${data.area}<br>
-                Permisos: ${data.total_permisos}
+                ${data.first_name || ''} ${data.last_name || ''}<br>
+                Empresa: ${data.company || 'N/A'}<br>
+                Área: ${data.area || 'N/A'}<br>
+                Permisos: ${data.total_permisos || 0}
             `;
         }
         else{
-
-            document.getElementById('id_first_name').value = data.first_name;
-            document.getElementById('id_last_name').value = data.last_name;
-            document.getElementById('id_company').value = data.company;
+            document.getElementById('id_first_name').value = data.first_name || '';
+            document.getElementById('id_last_name').value = data.last_name || '';
+            
+            if(document.getElementById('id_company')) {
+                document.getElementById('id_company').value = data.company || '';
+            }
 
             info.innerHTML = `
                 <strong>✓ VISITANTE ENCONTRADO</strong><br>
-                ${data.first_name} ${data.last_name}<br>
-                Visitas: ${data.total_visitas}
+                ${data.first_name || ''} ${data.last_name || ''}<br>
+                Visitas: ${data.total_visitas || 0}
             `;
         }
 
@@ -338,6 +360,9 @@ function buscarPersona(){
             preview.src = data.foto;
             preview.style.display = 'inline-block';
         }
+    })
+    .catch(error => {
+        console.error("ERROR FETCH:", error);
     });
 }
 

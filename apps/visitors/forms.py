@@ -65,6 +65,29 @@ class VisitorForm(forms.ModelForm):
         return self.cleaned_data.get('visitor_type')
 
 
+AREA_CHOICES = [
+    ('Seguridad y Salud en el Trabajo', 'Seguridad y Salud en el Trabajo'),
+    ('Sistema Gestión Ambiental', 'Sistema Gestión Ambiental'),
+    ('Gestión Comercial', 'Gestión Comercial'),
+    ('Comercio Internacional', 'Comercio Internacional'),
+    ('Diseño y Desarrollo', 'Diseño y Desarrollo'),
+    ('Gestión de Producción', 'Gestión de Producción'),
+    ('Control de Calidad', 'Control de Calidad'),
+    ('Provisión y Almacenamiento', 'Provisión y Almacenamiento'),
+    ('Gestión Inventarios', 'Gestión Inventarios'),
+    ('Gestión Logística', 'Gestión Logística'),
+    ('Gestión de Mercadeo', 'Gestión de Mercadeo'),
+    ('Gestión de Garantías', 'Gestión de Garantías'),
+    ('Experiencia al Cliente', 'Experiencia al Cliente'),
+    ('Gestión Humana', 'Gestión Humana'),
+    ('Gestión Financiera', 'Gestión Financiera'),
+    ('Gestión de Compras', 'Gestión de Compras'),
+    ('Tecnologías de la Información y Comunicaciones', 'Tecnologías de la Información y Comunicaciones'),
+    ('Gestión de Mantenimiento', 'Gestión de Mantenimiento'),
+    ('Prevención de Pérdidas', 'Prevención de Pérdidas'),
+]
+
+
 # ─── CLASE ALINEADA CORRECTAMENTE AL BORDE IZQUIERDO ───
 class VisitForm(forms.ModelForm):
     # Campo explícito para capturar y validar el correo de aviso en recepción
@@ -97,10 +120,10 @@ class VisitForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Nombre del responsable'
             }),
-            'area': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Área de destino'
-            }),
+            'area': forms.Select(
+                choices=[('', '---------')] + AREA_CHOICES,
+                attrs={'class': 'form-select'}
+            ),
         }
 
     # ─── VALIDACIÓN ESTRICTA DE DOMINIO BOCCHERINI ───

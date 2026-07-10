@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <div class="container mt-4">
     {% if messages %}
         {% for message in messages %}
@@ -221,7 +224,18 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
+// Inicialización de Select2 al cargar el documento
+$(document).ready(function() {
+    $('#id_document_type').select2({ width: '100%' });
+    $('#id_visitor_type').select2({ width: '100%' });
+    $('#id_reason_type').select2({ width: '100%' });
+    $('#id_area').select2({ width: '100%' });
+});
+
 // VARIABLES GLOBALES CON RUTAS DINÁMICAS DE DJANGO
 const URL_BUSCAR_VISITANTE = "{% url 'visitors:buscar_visitante' %}";
 const URL_BUSCAR_EMPLEADO = "{% url 'visitors:buscar_empleado' %}";
@@ -276,13 +290,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // TERCER CAMBIO: Agregar evento 'change' al select de tipo de visitante
-    const tipoSelect = document.getElementById('id_visitor_type');
-    if(tipoSelect){
-        tipoSelect.addEventListener(
-            'change',
-            buscarPersona
-        );
-    }
+    // NOTA: Con Select2, capturamos el evento usando jQuery para asegurar compatibilidad total
+    $('#id_visitor_type').on('change', buscarPersona);
 
 });
 
@@ -324,12 +333,14 @@ function buscarPersona(){
                 document.getElementById('id_company').value = data.company || '';
             }
 
+            // CAMBIO AQUÍ: Forzar actualización visual de Select2 para el campo 'area'
             if(document.getElementById('id_area')){
-                document.getElementById('id_area').value = data.area || '';
+                $('#id_area').val(data.area || '').trigger('change');
             }
 
+            // CAMBIO AQUÍ: Forzar actualización visual de Select2 para el campo 'document_type'
             if(document.getElementById('id_document_type')){
-                document.getElementById('id_document_type').value = data.document_type || 'cedula';
+                $('#id_document_type').val(data.document_type || 'cedula').trigger('change');
             }
 
             info.innerHTML = `
@@ -395,6 +406,17 @@ function imprimirGafete() {
     body * { visibility: hidden; }
     #area-impresion, #area-impresion * { visibility: visible; }
     #area-impresion { position: fixed; top: 0; left: 0; }
+}
+/* Estilo rápido para ajustar la altura visual de los contenedores de Select2 con Bootstrap 5 */
+.select2-container .select2-selection--single {
+    height: 38px !important;
+    display: flex;
+    align-items: center;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
 }
 </style>
 {% endblock %}

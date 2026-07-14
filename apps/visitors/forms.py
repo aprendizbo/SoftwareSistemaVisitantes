@@ -19,13 +19,23 @@ class VisitorForm(forms.ModelForm):
 
     class Meta:
         model = Visitor
-        # Excluimos 'visitor_type' de los fields del modelo para evitar que salte su validador estricto de BD
-        fields = ['document_type', 'document_id', 'first_name', 'last_name', 'company']
+        fields = [
+            'first_name',
+            'last_name',
+            'document_type',
+            'document_id',
+            'phone_number',
+            'emergency_contact',
+            'visitor_type',
+            'company'
+        ]
         labels = {
             'document_type': 'Tipo de Documento',
             'document_id': 'Número de Documento',
             'first_name': 'Nombre',
             'last_name': 'Apellido',
+            'phone_number': 'Número Celular',
+            'emergency_contact': 'Número de Emergencia',
             'company': 'Empresa',
         }
         widgets = {
@@ -41,6 +51,14 @@ class VisitorForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej. Pérez'
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej. 3001234567'
+            }),
+            'emergency_contact': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej. 3001234567 (Opcional)'
             }),
             'company': forms.TextInput(attrs={
                 'class': 'form-control',

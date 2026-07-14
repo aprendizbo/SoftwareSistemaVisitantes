@@ -66,6 +66,24 @@
                             {% endif %}
                         </div>
 
+                        <!-- NUEVO CAMPO: Celular -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Número Celular</label>
+                            {{ visitor_form.phone_number }}
+                            {% if visitor_form.phone_number.errors %}
+                                <div class="text-danger small">{{ visitor_form.phone_number.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- NUEVO CAMPO: Contacto de Emergencia -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Contacto de Emergencia</label>
+                            {{ visitor_form.emergency_contact }}
+                            {% if visitor_form.emergency_contact.errors %}
+                                <div class="text-danger small">{{ visitor_form.emergency_contact.errors }}</div>
+                            {% endif %}
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Empresa <span class="text-muted fw-normal">(Opcional)</span></label>
                             {{ visitor_form.company }}
@@ -283,14 +301,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // PASO 6: JavaScript añadido antes del cierre de DOMContentLoaded
     const documentoInput = document.getElementById('id_document_id');
     if(documentoInput){
-        documentoInput.addEventListener(
-            'blur',
-            buscarPersona
-        );
+        documentoInput.addEventListener('blur', buscarPersona);
     }
 
     // TERCER CAMBIO: Agregar evento 'change' al select de tipo de visitante
-    // NOTA: Con Select2, capturamos el evento usando jQuery para asegurar compatibilidad total
     $('#id_visitor_type').on('change', buscarPersona);
 
 });
@@ -306,7 +320,6 @@ function buscarPersona(){
 
     let url = '';
 
-    // SOLUCIÓN APLICADA: Uso de las variables inyectadas de Django
     if(tipoIngreso === 'permiso_empleado'){
         url = `${URL_BUSCAR_EMPLEADO}?document_id=${documento}`;
     }
@@ -332,13 +345,17 @@ function buscarPersona(){
             if(document.getElementById('id_company')){
                 document.getElementById('id_company').value = data.company || '';
             }
+            if(document.getElementById('id_phone_number')){
+                document.getElementById('id_phone_number').value = data.phone_number || '';
+            }
+            if(document.getElementById('id_emergency_contact')){
+                document.getElementById('id_emergency_contact').value = data.emergency_contact || '';
+            }
 
-            // CAMBIO AQUÍ: Forzar actualización visual de Select2 para el campo 'area'
             if(document.getElementById('id_area')){
                 $('#id_area').val(data.area || '').trigger('change');
             }
 
-            // CAMBIO AQUÍ: Forzar actualización visual de Select2 para el campo 'document_type'
             if(document.getElementById('id_document_type')){
                 $('#id_document_type').val(data.document_type || 'cedula').trigger('change');
             }
@@ -357,6 +374,12 @@ function buscarPersona(){
             
             if(document.getElementById('id_company')) {
                 document.getElementById('id_company').value = data.company || '';
+            }
+            if(document.getElementById('id_phone_number')){
+                document.getElementById('id_phone_number').value = data.phone_number || '';
+            }
+            if(document.getElementById('id_emergency_contact')){
+                document.getElementById('id_emergency_contact').value = data.emergency_contact || '';
             }
 
             info.innerHTML = `

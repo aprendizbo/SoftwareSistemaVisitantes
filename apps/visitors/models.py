@@ -21,11 +21,38 @@ class Visitor(models.Model):
     document_type = models.CharField(max_length=50, choices=TIPO_DOC, verbose_name='Tipo de Documento')
     document_id = models.CharField(max_length=50, unique=True, verbose_name='Número de Documento')
     visitor_type = models.CharField(max_length=50, choices=TIPO_VIS, verbose_name='Tipo ingreso/salida')
-    company = models.CharField(max_length=100, blank=True, null=True, verbose_name='Empresa')
+    
+    # Nuevos campos agregados
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Número Celular'
+    )
+    emergency_contact = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Número de Emergencia'
+    )
+    company = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Empresa'
+    )
 
     class Meta:
         verbose_name = 'Visitante'
         verbose_name_plural = 'Visitantes'
+
+    @property
+    def document_short(self):
+        return {
+            'cedula': 'CC',
+            'ce': 'CE',
+            'pasaporte': 'PAS',
+        }.get(self.document_type, '')
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

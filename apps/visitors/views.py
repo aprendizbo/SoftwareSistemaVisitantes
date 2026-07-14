@@ -252,6 +252,7 @@ def registrar_ingreso(request):
         elif not es_permiso_empleado and v_form.is_valid() and vi_form.is_valid():
             document_id = v_form.cleaned_data['document_id']
             
+            # --- NUEVO: Se agregaron phone_number y emergency_contact ---
             visitor_db, created = Visitor.objects.get_or_create(
                 document_id=document_id,
                 defaults={
@@ -260,6 +261,8 @@ def registrar_ingreso(request):
                     'document_type': v_form.cleaned_data['document_type'],
                     'visitor_type': tipo_ingreso,
                     'company': v_form.cleaned_data['company'],
+                    'phone_number': v_form.cleaned_data.get('phone_number', ''),
+                    'emergency_contact': v_form.cleaned_data.get('emergency_contact', ''),
                 }
             )
 
@@ -269,6 +272,8 @@ def registrar_ingreso(request):
                 visitor_db.document_type = v_form.cleaned_data['document_type']
                 visitor_db.visitor_type = tipo_ingreso
                 visitor_db.company = v_form.cleaned_data['company']
+                visitor_db.phone_number = v_form.cleaned_data.get('phone_number', '')
+                visitor_db.emergency_contact = v_form.cleaned_data.get('emergency_contact', '')
                 visitor_db.save()
 
             visit = vi_form.save(commit=False)
@@ -346,6 +351,8 @@ def registrar_ingreso(request):
                 f"• Motivo de la Visita: {visit.get_reason_type_display()}\n"
                 f"{detalle_adicional}"
                 f"• Token QR de Control: {visit.token_qr}\n"
+                f"• Celular: {visitor_db.phone_number or 'No registrado'}\n"
+                f"• Contacto de Emergencia: {visitor_db.emergency_contact or 'No registrado'}\n"
                 f"• Hora de Entrada: {timezone.localtime().strftime('%H:%M')}\n\n"
                 f"Se adjunta la fotografía tomada en recepción.\n\n"
                 f"Atentamente,\nSistema de Control de Accesos Boccherini."
@@ -588,12 +595,15 @@ def buscar_visitante(request):
             for v in visitas[:5]
         ]
 
+        # --- APLICADA CORRECCIÓN 5: Se agregó phone_number y emergency_contact ---
         return JsonResponse({
             'encontrado': True,
             'first_name': getattr(visitante, 'first_name', ''),
             'last_name': getattr(visitante, 'last_name', ''),
             'company': getattr(visitante, 'company', ''),
             'document_type': getattr(visitante, 'document_type', 'CC'),
+            'phone_number': getattr(visitante, 'phone_number', ''),
+            'emergency_contact': getattr(visitante, 'emergency_contact', ''),
             'total_visitas': visitas.count(),
             'historial': historial,
             'foto': ultima_visita.photo.url if ultima_visita and ultima_visita.photo else ''

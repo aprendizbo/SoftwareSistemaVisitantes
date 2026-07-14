@@ -301,7 +301,21 @@
                                             {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
                                         </h4>
                                         <table class="table table-bordered">
-                                            <tr><th width="35%">Documento</th><td>{{ visita.visitor.document_id }}</td></tr>
+                                            <tr>
+                                                <th width="35%">Documento</th>
+                                                <td>
+                                                    {{ visita.visitor.document_short }}
+                                                    {{ visita.visitor.document_id }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Celular</th>
+                                                <td>{{ visita.visitor.phone_number|default:"No registrado" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Contacto Emergencia</th>
+                                                <td>{{ visita.visitor.emergency_contact|default:"No registrado" }}</td>
+                                            </tr>
                                             <tr><th>Tipo</th><td>{{ visita.visitor.get_visitor_type_display }}</td></tr>
                                             <tr><th>Empresa</th><td>{{ visita.visitor.company|default:"No registra" }}</td></tr>
                                             <tr><th>Área destino</th><td>{{ visita.area }}</td></tr>

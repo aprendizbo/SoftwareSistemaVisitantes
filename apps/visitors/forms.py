@@ -103,6 +103,13 @@ AREA_CHOICES = [
     ('Tecnologías de la Información y Comunicaciones', 'Tecnologías de la Información y Comunicaciones'),
     ('Gestión de Mantenimiento', 'Gestión de Mantenimiento'),
     ('Prevención de Pérdidas', 'Prevención de Pérdidas'),
+    ('Proyectos', 'Proyectos'),
+    ('Gerencia', 'Gerencia'),
+    ('Contabilidad', 'Contabilidad'),
+    ('Tesorería', 'Tesorería'),
+    ('Cartera', 'Cartera'),
+    ('Jurídica', 'Jurídica'),
+    ('Cafetería', 'Cafetería'),
 ]
 
 

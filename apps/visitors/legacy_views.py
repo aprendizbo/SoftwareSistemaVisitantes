@@ -601,12 +601,28 @@ def buscar_visitante(request):
             'first_name': getattr(visitante, 'first_name', ''),
             'last_name': getattr(visitante, 'last_name', ''),
             'company': getattr(visitante, 'company', ''),
-            'document_type': getattr(visitante, 'document_type', 'CC'),
+            'document_type': getattr(visitante, 'document_type', 'cedula'),
             'phone_number': getattr(visitante, 'phone_number', ''),
-            'emergency_contact': getattr(visitante, 'emergency_contact', ''),
+            'emergency_contact_name': getattr(
+                visitante,
+                'emergency_contact_name',
+                ''
+            ),
+            'emergency_contact_relationship': getattr(
+                visitante,
+                'emergency_contact_relationship',
+                ''
+            ),
+            'emergency_contact': getattr(
+                visitante,
+                'emergency_contact',
+                ''
+            ),
             'total_visitas': visitas.count(),
             'historial': historial,
-            'foto': ultima_visita.photo.url if ultima_visita and ultima_visita.photo else ''
+            'foto': ultima_visita.photo.url
+                if ultima_visita and ultima_visita.photo
+                else ''
         })
 
     except Visitor.DoesNotExist:

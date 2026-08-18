@@ -25,7 +25,9 @@ class VisitorForm(forms.ModelForm):
             'document_type',
             'document_id',
             'phone_number',
+            'emergency_contact_name',
             'emergency_contact',
+            'emergency_contact_relationship',
             'visitor_type',
             'company'
         ]
@@ -35,7 +37,9 @@ class VisitorForm(forms.ModelForm):
             'first_name': 'Nombre',
             'last_name': 'Apellido',
             'phone_number': 'Número Celular',
+            'emergency_contact_name': 'Nombre Contacto de Emergencia',
             'emergency_contact': 'Número de Emergencia',
+            'emergency_contact_relationship': 'Parentesco Contacto de Emergencia',
             'company': 'Empresa',
         }
         widgets = {
@@ -56,9 +60,17 @@ class VisitorForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Ej. 3001234567'
             }),
+            'emergency_contact_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del contacto (Opcional)'
+            }),
             'emergency_contact': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej. 3001234567 (Opcional)'
+            }),
+            'emergency_contact_relationship': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej. Madre, Padre, Hermano (Opcional)'
             }),
             'company': forms.TextInput(attrs={
                 'class': 'form-control',

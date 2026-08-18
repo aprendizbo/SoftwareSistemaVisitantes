@@ -26,8 +26,39 @@ class Employee(models.Model):
         verbose_name="Tipo de Documento"
     )
     
-    employee_id = models.CharField(max_length=20, unique=True, verbose_name="Número de Documento")
-    area = models.CharField(max_length=100, verbose_name="Área de Trabajo", blank=True, null=True)
+    employee_id = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Número de Documento"
+    )
+
+    area = models.CharField(
+        max_length=100,
+        verbose_name="Área de Trabajo",
+        blank=True,
+        null=True
+    )
+
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="Número Celular"
+    )
+
+    emergency_contact_name = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name="Nombre Contacto de Emergencia"
+    )
+
+    emergency_contact = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="Número de Emergencia"
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

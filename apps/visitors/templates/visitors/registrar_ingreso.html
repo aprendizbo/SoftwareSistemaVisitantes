@@ -75,12 +75,34 @@
                             {% endif %}
                         </div>
 
-                        <!-- NUEVO CAMPO: Contacto de Emergencia -->
+                        <!-- CONTACTO DE EMERGENCIA -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Contacto de Emergencia</label>
+                            <label class="form-label fw-semibold">Nombre Contacto de Emergencia</label>
+                            {{ visitor_form.emergency_contact_name }}
+                            {% if visitor_form.emergency_contact_name.errors %}
+                                <div class="text-danger small">
+                                    {{ visitor_form.emergency_contact_name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Parentesco</label>
+                            {{ visitor_form.emergency_contact_relationship }}
+                            {% if visitor_form.emergency_contact_relationship.errors %}
+                                <div class="text-danger small">
+                                    {{ visitor_form.emergency_contact_relationship.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Número de Emergencia</label>
                             {{ visitor_form.emergency_contact }}
                             {% if visitor_form.emergency_contact.errors %}
-                                <div class="text-danger small">{{ visitor_form.emergency_contact.errors }}</div>
+                                <div class="text-danger small">
+                                    {{ visitor_form.emergency_contact.errors }}
+                                </div>
                             {% endif %}
                         </div>
 
@@ -190,12 +212,30 @@
             <div class="modal-body text-center py-4">
                 <p class="fs-5 mb-1">
                     Persona: <strong>{{ v_exitosa.visitor.first_name }} {{ v_exitosa.visitor.last_name }}</strong>  </p>
+                
                 <p class="mb-1">
                     Tipo: <span class="badge bg-secondary">{{ v_exitosa.visitor.get_visitor_type_display }}</span>
                 </p>
+
+                <p class="mb-1 text-muted">
+                    Contacto de Emergencia:
+                    <strong>{{ v_exitosa.visitor.emergency_contact_name }}</strong>
+                </p>
+
+                <p class="mb-1 text-muted">
+                    Parentesco:
+                    <strong>{{ v_exitosa.visitor.emergency_contact_relationship }}</strong>
+                </p>
+
+                <p class="mb-3 text-muted">
+                    Número de Emergencia:
+                    <strong>{{ v_exitosa.visitor.emergency_contact }}</strong>
+                </p>
+
                 <p class="mb-3">
                     Token: <code class="fw-bold text-danger fs-5">{{ v_exitosa.token_qr }}</code>
                 </p>
+                
                 <p class="mb-1 text-muted">Área: <strong>{{ v_exitosa.area }}</strong></p>
                 <p class="mb-3 text-muted">
                     Hora de registro: <strong>{{ v_exitosa.entry_time|time:"H:i" }}</strong>  </p>
@@ -379,7 +419,18 @@ function buscarPersona(){
                 document.getElementById('id_phone_number').value = data.phone_number || '';
             }
             if(document.getElementById('id_emergency_contact')){
-                document.getElementById('id_emergency_contact').value = data.emergency_contact || '';
+                document.getElementById('id_emergency_contact').value =
+                    data.emergency_contact || '';
+            }
+            
+            if(document.getElementById('id_emergency_contact_name')){
+                document.getElementById('id_emergency_contact_name').value =
+                    data.emergency_contact_name || '';
+            }
+
+            if(document.getElementById('id_emergency_contact_relationship')){
+                document.getElementById('id_emergency_contact_relationship').value =
+                    data.emergency_contact_relationship || '';
             }
 
             info.innerHTML = `

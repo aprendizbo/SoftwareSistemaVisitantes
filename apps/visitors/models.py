@@ -42,6 +42,27 @@ class Visitor(models.Model):
         verbose_name='Empresa'
     )
 
+    emergency_contact_name = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name='Nombre Contacto de Emergencia'
+    )
+
+    emergency_contact_phone = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True,
+        verbose_name='Número Contacto de Emergencia'
+    )
+
+    emergency_contact_relationship = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Parentesco Contacto de Emergencia'
+    )
+
     class Meta:
         verbose_name = 'Visitante'
         verbose_name_plural = 'Visitantes'

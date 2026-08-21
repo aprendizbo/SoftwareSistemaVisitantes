@@ -111,25 +111,38 @@ def confirmar_checkout(request, visit_id):
 
             if permiso.correo_notificar:
                 asunto_ret = (
-                    f"Retorno de Empleado: "
+                    f"✅ Retorno de Empleado: "
                     f"{nombre_completo_emp}"
                 )
 
-                cuerpo_ret = (
-                    "Se informa que el empleado ha retornado "
-                    "a las instalaciones finalizando su permiso.\n\n"
-                    f"Empleado: {nombre_completo_emp}\n"
-                    f"Área/Departamento: {permiso.employee.area}\n"
-                    f"Hora de Retorno: "
-                    f"{timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
-                    "Atentamente,\n"
-                    "Sistema de Control de Accesos Boccherini."
-                )
+                imagen_bytes_adjuntar = None
+
+                if permiso.photo:
+                    try:
+                        with permiso.photo.open('rb') as f:
+                            imagen_bytes_adjuntar = f.read()
+                    except Exception as e:
+                        print("ERROR OBTENIENDO FOTO DE EMPLEADO:", e)
+
+                contexto = {
+                    'movimiento': 'entrada', # El retorno es un ingreso a la instalación
+                    'es_permiso_empleado': True,
+                    'empleado': permiso.employee,
+                    'documento': permiso.employee.employee_id,
+                    'nombre_completo': nombre_completo_emp,
+                    'tipo_permiso': permiso.permit_type,
+                    'detalle_permiso': getattr(permiso, 'detalle_adicional', ''),
+                    'token_qr': permiso.token_qr,
+                    'area': permiso.employee.area,
+                    'hora_movimiento': permiso.return_time,
+                    'imagen_disponible': bool(imagen_bytes_adjuntar),
+                }
 
                 enviar_alerta_email(
                     asunto_ret,
-                    cuerpo_ret,
-                    permiso.correo_notificar
+                    permiso.correo_notificar,
+                    contexto,
+                    imagen_bytes_adjuntar
                 )
 
             return JsonResponse({
@@ -167,26 +180,42 @@ def confirmar_checkout(request, visit_id):
             )
 
             asunto_sal = (
-                f"Salida de Visitante: {nom_completo}"
+                f"🚪 Salida de Visitante: {nom_completo}"
             )
 
-            cuerpo_sal = (
-                "Se informa que el visitante ha registrado "
-                "su salida de las instalaciones.\n\n"
-                f"Visitante: {nom_completo}\n"
-                f"Documento: {visit.visitor.document_id}\n"
-                f"Empresa / Procedencia: "
-                f"{visit.visitor.company or 'Particular'}\n"
-                f"Hora de Salida: "
-                f"{timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
-                "Atentamente,\n"
-                "Sistema de Control de Accesos Boccherini."
-            )
+            imagen_bytes_adjuntar = None
+
+            if visit.photo:
+                try:
+                    with visit.photo.open('rb') as f:
+                        imagen_bytes_adjuntar = f.read()
+
+                except Exception as e:
+                    print(
+                        "ERROR OBTENIENDO FOTO DEL VISITANTE:",
+                        e
+                    )
+
+            contexto_sal = {
+                'movimiento': 'salida',
+                'es_permiso_empleado': False,
+                'visitante': visit.visitor,
+                'visita': visit,
+                'nombre_completo': nom_completo,
+                'es_entrevistado': (
+                    visit.visitor.visitor_type == 'entrevistado'
+                ),
+                'empresa': visit.visitor.company,
+                'area': visit.area,
+                'hora_movimiento': visit.exit_time,
+                'imagen_disponible': bool(imagen_bytes_adjuntar),
+            }
 
             enviar_alerta_email(
                 asunto_sal,
-                cuerpo_sal,
-                visit.correo_notificar
+                visit.correo_notificar,
+                contexto_sal,
+                imagen_bytes_adjuntar
             )
 
         return JsonResponse({
@@ -210,95 +239,138 @@ def confirmar_checkout(request, visit_id):
 def registrar_salida(request, visita_id):
     if request.method == 'POST':
 
+        # Buscamos primero el permiso SIN filtrar el estado ACTIVO
         permiso = EmployeePermission.objects.filter(
-            id=visita_id,
-            status='ACTIVO'
+            id=visita_id
         ).first()
 
         if permiso:
-            permiso.status = 'FINALIZADO'
-            permiso.return_time = timezone.now()
-            permiso.save()
+            # Si lo encontró y ya está FINALIZADO, evitamos procesarlo otra vez
+            if permiso.status == 'FINALIZADO':
+                messages.info(
+                    request,
+                    f"El retorno laboral de {permiso.employee.first_name} {permiso.employee.last_name} ya había sido registrado anteriormente."
+                )
+            else:
+                permiso.status = 'FINALIZADO'
+                permiso.return_time = timezone.now()
+                permiso.save()
 
-            nombre_completo_emp = (
-                f"{permiso.employee.first_name} "
-                f"{permiso.employee.last_name}"
-            )
-
-            if permiso.correo_notificar:
-                asunto_ret = (
-                    f"Retorno de Empleado: "
-                    f"{nombre_completo_emp}"
+                nombre_completo_emp = (
+                    f"{permiso.employee.first_name} "
+                    f"{permiso.employee.last_name}"
                 )
 
-                cuerpo_ret = (
-                    "Se informa que el empleado ha retornado "
-                    "a las instalaciones finalizando su permiso.\n\n"
-                    f"Empleado: {nombre_completo_emp}\n"
-                    f"Área/Departamento: {permiso.employee.area}\n"
-                    f"Hora de Retorno: "
-                    f"{timezone.localtime(permiso.return_time).strftime('%H:%M')}\n\n"
-                    "Atentamente,\n"
-                    "Sistema de Control de Accesos Boccherini."
-                )
+                if permiso.correo_notificar:
+                    asunto_ret = (
+                        f"✅ Retorno de Empleado: "
+                        f"{nombre_completo_emp}"
+                    )
 
-                enviar_alerta_email(
-                    asunto_ret,
-                    cuerpo_ret,
-                    permiso.correo_notificar
-                )
+                    imagen_bytes_adjuntar = None
 
-            messages.success(
-                request,
-                f"Re-ingreso laboral registrado para "
-                f"{nombre_completo_emp}."
-            )
+                    if permiso.photo:
+                        try:
+                            with permiso.photo.open('rb') as f:
+                                imagen_bytes_adjuntar = f.read()
+                        except Exception as e:
+                            print("ERROR OBTENIENDO FOTO DE EMPLEADO:", e)
+
+                    contexto = {
+                        'movimiento': 'entrada', # El retorno es un ingreso a la instalación
+                        'es_permiso_empleado': True,
+                        'empleado': permiso.employee,
+                        'documento': permiso.employee.employee_id,
+                        'nombre_completo': nombre_completo_emp,
+                        'tipo_permiso': permiso.permit_type,
+                        'detalle_permiso': getattr(permiso, 'detalle_adicional', ''),
+                        'token_qr': permiso.token_qr,
+                        'area': permiso.employee.area,
+                        'hora_movimiento': permiso.return_time,
+                        'imagen_disponible': bool(imagen_bytes_adjuntar),
+                    }
+
+                    enviar_alerta_email(
+                        asunto_ret,
+                        permiso.correo_notificar,
+                        contexto,
+                        imagen_bytes_adjuntar
+                    )
+
+                messages.success(
+                    request,
+                    f"Re-ingreso laboral registrado para "
+                    f"{nombre_completo_emp}."
+                )
 
         else:
+            # Buscamos la visita SIN filtrar por status='ingresado'
             visit = get_object_or_404(
                 Visit,
-                id=visita_id,
-                status='ingresado'
+                id=visita_id
             )
 
-            visit.status = 'salido'
-            visit.exit_time = timezone.now()
-            visit.save()
+            # Verificamos internamente el estado
+            if visit.status == 'salido':
+                messages.info(
+                    request,
+                    f"La salida de {visit.visitor.first_name} {visit.visitor.last_name} ya había sido registrada anteriormente."
+                )
+            else:
+                visit.status = 'salido'
+                visit.exit_time = timezone.now()
+                visit.save()
 
-            if visit.correo_notificar:
-                nom_completo = (
+                if visit.correo_notificar:
+                    nom_completo = (
+                        f"{visit.visitor.first_name} "
+                        f"{visit.visitor.last_name}"
+                    )
+
+                    asunto_sal = (
+                        f"🚪 Salida de Visitante: {nom_completo}"
+                    )
+
+                    imagen_bytes_adjuntar = None
+
+                    if visit.photo:
+                        try:
+                            with visit.photo.open('rb') as f:
+                                imagen_bytes_adjuntar = f.read()
+
+                        except Exception as e:
+                            print(
+                                "ERROR OBTENIENDO FOTO DEL VISITANTE:",
+                                e
+                            )
+
+                    contexto_sal = {
+                        'movimiento': 'salida',
+                        'es_permiso_empleado': False,
+                        'visitante': visit.visitor,
+                        'visita': visit,
+                        'nombre_completo': nom_completo,
+                        'es_entrevistado': (
+                            visit.visitor.visitor_type == 'entrevistado'
+                        ),
+                        'empresa': visit.visitor.company,
+                        'area': visit.area,
+                        'hora_movimiento': visit.exit_time,
+                        'imagen_disponible': bool(imagen_bytes_adjuntar),
+                    }
+
+                    enviar_alerta_email(
+                        asunto_sal,
+                        visit.correo_notificar,
+                        contexto_sal,
+                        imagen_bytes_adjuntar
+                    )
+
+                messages.success(
+                    request,
+                    f"Salida registrada exitosamente para "
                     f"{visit.visitor.first_name} "
-                    f"{visit.visitor.last_name}"
+                    f"{visit.visitor.last_name}."
                 )
-
-                asunto_sal = (
-                    f"Salida de Visitante: {nom_completo}"
-                )
-
-                cuerpo_sal = (
-                    "Se informa que el visitante ha registrado "
-                    "su salida de las instalaciones.\n\n"
-                    f"Visitante: {nom_completo}\n"
-                    f"Documento: {visit.visitor.document_id}\n"
-                    f"Empresa / Procedencia: "
-                    f"{visit.visitor.company or 'Particular'}\n"
-                    f"Hora de Salida: "
-                    f"{timezone.localtime(visit.exit_time).strftime('%H:%M')}\n\n"
-                    "Atentamente,\n"
-                    "Sistema de Control de Accesos Boccherini."
-                )
-
-                enviar_alerta_email(
-                    asunto_sal,
-                    cuerpo_sal,
-                    visit.correo_notificar
-                )
-
-            messages.success(
-                request,
-                f"Salida registrada exitosamente para "
-                f"{visit.visitor.first_name} "
-                f"{visit.visitor.last_name}."
-            )
 
     return redirect('dashboard:dashboard')

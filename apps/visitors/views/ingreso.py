@@ -13,7 +13,7 @@ from django.utils.crypto import get_random_string
 from apps.visitors.forms import VisitorForm, VisitForm
 from apps.visitors.models import Visitor, Visit
 from apps.employees.models import Employee, EmployeePermission
-from ..legacy_views import enviar_alerta_email
+from .email import enviar_alerta_email
 
 
 @login_required
@@ -245,10 +245,37 @@ def registrar_ingreso(request):
             )
 
             if permiso.correo_notificar:
+                contexto_emp = {
+                    'movimiento': 'salida',
+                    'es_permiso_empleado': True,
+                    'empleado': empleado,
+                    'documento': document_id,
+                    'nombre_completo': nombre_completo_emp,
+                    'tipo_permiso': tipo_permiso,
+                    'detalle_permiso': post_data.get(
+                        'reason_detail',
+                        ''
+                    ),
+                    'token_qr': permiso.token_qr,
+                    'empresa': empleado.company,
+                    'area': empleado.area,
+                    'celular': empleado.phone_number,
+                    'contacto_emergencia': (
+                        empleado.emergency_contact_name
+                    ),
+                    'telefono_emergencia': (
+                        empleado.emergency_contact
+                    ),
+                    'hora_movimiento': timezone.localtime(),
+                    'imagen_disponible': bool(
+                        imagen_bytes_adjuntar
+                    ),
+                }
+
                 enviar_alerta_email(
                     asunto_emp,
-                    cuerpo_emp,
                     permiso.correo_notificar,
+                    contexto_emp,
                     imagen_bytes_adjuntar
                 )
 
@@ -550,10 +577,25 @@ def registrar_ingreso(request):
                 "Sistema de Control de Accesos Boccherini."
             )
 
+            contexto_vis = {
+                'movimiento': 'entrada',
+                'es_permiso_empleado': False,
+                'visitante': visitor_db,
+                'visita': visit,
+                'nombre_completo': nom_completo,
+                'es_entrevistado': es_entrevistado,
+                'empresa': visitor_db.company,
+                'area': visit.area,
+                'hora_movimiento': timezone.localtime(),
+                'imagen_disponible': bool(
+                    imagen_bytes_adjuntar
+                ),
+            }
+
             enviar_alerta_email(
                 asunto_vis,
-                cuerpo_vis,
                 correo_destino,
+                contexto_vis,
                 imagen_bytes_adjuntar
             )
 

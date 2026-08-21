@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación de Movimiento</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f3f5f7; font-family: Arial, Helvetica, sans-serif; color: #263238;">
+
+    <!-- Contenedor Principal -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background-color: #f3f5f7; padding: 30px 10px;">
+
+        <tr>
+            <td align="center">
+
+                <!-- Tarjeta Blanca -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+
+                    <!-- ENCABEZADO -->
+                    <tr>
+                        <td style="background-color: #1f2937; padding: 25px; text-align: center;">
+
+                            <!-- LOGO BOCCHERINI -->
+                            <img src="https://boccherinicol.vtexassets.com/assets/vtex.file-manager-graphql/images/117104a7-a9bf-4a1c-ba2b-c33ac4db466e___dc9a4962633b58475c7995a25825a981.jpg"
+                                 alt="Boccherini S.A.S"
+                                 style="max-width: 220px; max-height: 80px; display: block; margin: 0 auto 10px auto;">
+
+                            <p style="margin: 0; color: #9ca3af; font-size: 14px;">
+                                Sistema de Control de Accesos
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- CONTENIDO -->
+                    <tr>
+                        <td style="padding: 30px;">
+
+                            <!-- TÍTULO DINÁMICO -->
+                            <div style="margin-bottom: 25px; text-align: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px;">
+
+                                {% if es_permiso_empleado %}
+
+                                    {% if movimiento == 'entrada' %}
+
+                                        <h2 style="margin: 0; color: #16a34a; font-size: 22px;">
+                                            ✅ Retorno de Empleado
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de retorno a las instalaciones
+                                        </p>
+
+                                    {% else %}
+
+                                        <h2 style="margin: 0; color: #dc2626; font-size: 22px;">
+                                            🚨 Salida por Permiso
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de permiso laboral/personal
+                                        </p>
+
+                                    {% endif %}
+
+                                {% elif es_entrevistado %}
+
+                                    {% if movimiento == 'salida' %}
+
+                                        <h2 style="margin: 0; color: #dc2626; font-size: 22px;">
+                                            🚪 Salida de Entrevistado
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de salida de proceso de selección
+                                        </p>
+
+                                    {% else %}
+
+                                        <h2 style="margin: 0; color: #2563eb; font-size: 22px;">
+                                            👤 Ingreso de Entrevistado
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de proceso de selección
+                                        </p>
+
+                                    {% endif %}
+
+                                {% else %}
+
+                                    {% if movimiento == 'salida' %}
+
+                                        <h2 style="margin: 0; color: #dc2626; font-size: 22px;">
+                                            🚪 Salida de Visitante
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de salida de visitante externo
+                                        </p>
+
+                                    {% else %}
+
+                                        <h2 style="margin: 0; color: #16a34a; font-size: 22px;">
+                                            🔔 Ingreso de Visitante
+                                        </h2>
+
+                                        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                            Notificación de visitante externo
+                                        </p>
+
+                                    {% endif %}
+
+                                {% endif %}
+
+                            </div>
+
+                            <!-- TABLA DE INFORMACIÓN -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="font-size: 15px; line-height: 1.6;">
+
+                                <!-- NOMBRE -->
+                                <tr>
+                                    <td width="40%"
+                                        style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                        Nombre completo:
+                                    </td>
+
+                                    <td width="60%"
+                                        style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                        {{ nombre_completo }}
+                                    </td>
+                                </tr>
+
+                                {% if es_permiso_empleado %}
+
+                                    <!-- DATOS DEL EMPLEADO -->
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Documento:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ documento }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Área / Dpto:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ area }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Tipo de Permiso:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            <span style="background-color: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 13px;">
+                                                {{ tipo_permiso }}
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    {% if detalle_permiso %}
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Detalle:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ detalle_permiso }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Token Asignado:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            <strong>{{ token_qr }}</strong>
+                                        </td>
+                                    </tr>
+
+                                {% else %}
+
+                                    <!-- DATOS DEL VISITANTE -->
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Documento:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ visitante.get_document_type_display }} {{ visitante.document_id }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Empresa / Procedencia:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ empresa|default:"Particular" }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Persona a Visitar:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ visita.person_to_visit }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Área de Destino:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ area }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Motivo:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ visita.get_reason_type_display }}
+                                        </td>
+                                    </tr>
+
+                                    {% if visita.reason_detail %}
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Detalle adicional:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ visita.reason_detail }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Token Asignado:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            <strong>{{ visita.token_qr }}</strong>
+                                        </td>
+                                    </tr>
+
+                                {% endif %}
+
+                                <!-- HORA -->
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                        Hora del movimiento:
+                                    </td>
+
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                        {{ hora_movimiento|date:"d/m/Y H:i" }}
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                            <!-- FOTO -->
+                            {% if imagen_disponible %}
+
+                            <div style="text-align: center; margin-top: 30px;">
+
+                                <p style="font-size: 14px; color: #6b7280; font-weight: bold; margin-bottom: 10px; text-transform: uppercase;">
+                                    Fotografía de Recepción
+                                </p>
+
+                                <img src="cid:foto_recepcion"
+                                     alt="Fotografía en recepción"
+                                     style="max-width: 100%; height: auto; border-radius: 8px; border: 3px solid #f3f4f6; display: inline-block;">
+
+                            </div>
+
+                            {% else %}
+
+                            <div style="text-align: center; margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+
+                                <p style="margin: 0; color: #9ca3af; font-style: italic;">
+                                    No se capturó fotografía para este movimiento.
+                                </p>
+
+                            </div>
+
+                            {% endif %}
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+
+                            <p style="margin: 0; font-size: 12px; color: #6b7280;">
+                                Este es un correo generado automáticamente por el
+                                <strong>Sistema de Control de Accesos</strong>
+                                de Boccherini S.A.S.
+                            </p>
+
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #9ca3af;">
+                                Por favor no responda a esta dirección de correo.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+
+    </table>
+
+</body>
+</html>

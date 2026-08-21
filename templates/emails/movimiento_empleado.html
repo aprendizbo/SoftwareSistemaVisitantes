@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Movimiento de Empleado</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333333;
+        }
+
+        .contenedor {
+            width: 100%;
+            padding: 30px 0;
+        }
+
+        .correo {
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .encabezado {
+            background-color: #1f2937;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .encabezado h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .contenido {
+            padding: 30px;
+        }
+
+        .titulo {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .informacion {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        .informacion td {
+            padding: 10px;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .informacion td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+
+        .foto {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .foto img {
+            max-width: 250px;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 1px solid #dddddd;
+        }
+
+        .sin-foto {
+            color: #777777;
+            font-style: italic;
+        }
+
+        .pie {
+            background-color: #f4f6f8;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #666666;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <div class="correo">
+
+        <div class="encabezado">
+            <h1>🔔 Sistema de Control de Accesos</h1>
+        </div>
+
+        <div class="contenido">
+
+            <div class="titulo">
+                Notificación de movimiento de empleado
+            </div>
+
+            <table class="informacion">
+
+                <tr>
+                    <td>Empleado</td>
+                    <td>
+                        {{ empleado.first_name }}
+                        {{ empleado.last_name }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Documento</td>
+                    <td>{{ documento }}</td>
+                </tr>
+
+                <tr>
+                    <td>Empresa</td>
+                    <td>
+                        {{ empleado.company|default:"No registrada" }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Área / Departamento</td>
+                    <td>{{ empleado.area }}</td>
+                </tr>
+
+                <tr>
+                    <td>Tipo de permiso</td>
+                    <td>{{ tipo_permiso }}</td>
+                </tr>
+
+                {% if detalle_permiso %}
+                <tr>
+                    <td>Detalle / Justificación</td>
+                    <td>{{ detalle_permiso }}</td>
+                </tr>
+                {% endif %}
+
+                <tr>
+                    <td>Token QR</td>
+                    <td>{{ token_qr }}</td>
+                </tr>
+
+                <tr>
+                    <td>Celular</td>
+                    <td>
+                        {{ empleado.phone_number|default:"No registrado" }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Hora del movimiento</td>
+                    <td>
+                        {{ hora_movimiento|date:"d/m/Y H:i" }}
+                    </td>
+                </tr>
+
+            </table>
+
+            {% if imagen_disponible %}
+
+            <div class="foto">
+
+                <p>
+                    <strong>Fotografía tomada en recepción</strong>
+                </p>
+
+                <img
+                    src="cid:foto_recepcion"
+                    alt="Fotografía tomada en recepción"
+                >
+
+            </div>
+
+            {% else %}
+
+            <div class="foto">
+
+                <p class="sin-foto">
+                    No se encontró una fotografía para este movimiento.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        <div class="pie">
+            Sistema de Control de Accesos Boccherini<br>
+            Notificación automática — No responder a este correo.
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

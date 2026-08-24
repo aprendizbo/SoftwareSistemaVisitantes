@@ -273,20 +273,58 @@
                     Tipo: <span class="badge bg-secondary">{{ v_exitosa.visitor.get_visitor_type_display }}</span>
                 </p>
 
-                <p class="mb-1 text-muted">
-                    Contacto de Emergencia:
-                    <strong>{{ v_exitosa.visitor.emergency_contact_name }}</strong>
-                </p>
-
-                <p class="mb-1 text-muted">
-                    Parentesco:
-                    <strong>{{ v_exitosa.visitor.emergency_contact_relationship }}</strong>
-                </p>
-
-                <p class="mb-3 text-muted">
-                    Número de Emergencia:
-                    <strong>{{ v_exitosa.visitor.emergency_contact_phone }}</strong>
-                </p>
+                {% if v_exitosa.is_employee_mock %}
+                
+                    <p class="mb-1 text-muted">
+                        Documento:
+                        <strong>{{ v_exitosa.visitor.document_id }}</strong>
+                    </p>
+                
+                    <p class="mb-1 text-muted">
+                        Contacto de Emergencia:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_name|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                    <p class="mb-1 text-muted">
+                        Parentesco:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_relationship|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                    <p class="mb-3 text-muted">
+                        Número de Emergencia:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_phone|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                {% else %}
+                
+                    <p class="mb-1 text-muted">
+                        Contacto de Emergencia:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_name|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                    <p class="mb-1 text-muted">
+                        Parentesco:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_relationship|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                    <p class="mb-3 text-muted">
+                        Número de Emergencia:
+                        <strong>
+                            {{ v_exitosa.visitor.emergency_contact_phone|default:"No registrado" }}
+                        </strong>
+                    </p>
+                
+                {% endif %}
 
                 <p class="mb-3">
                     Token: <code class="fw-bold text-danger fs-5">{{ v_exitosa.token_qr }}</code>

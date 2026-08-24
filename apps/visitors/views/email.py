@@ -3,6 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from email.mime.image import MIMEImage
 
+
 def enviar_alerta_email(
     asunto,
     destinatario,
@@ -42,8 +43,6 @@ def enviar_alerta_email(
         # =====================================================
 
         if imagen_bytes:
-
-            # Se ha eliminado el _subtype="jpeg" para evitar problemas en Gmail
             imagen = MIMEImage(imagen_bytes)
 
             imagen.add_header(
@@ -73,8 +72,13 @@ def enviar_alerta_email(
             f"CORREO ENVIADO A: {destinatario}"
         )
 
+        return True
+
     except Exception as e:
         print(
             f"ERROR ENVIANDO CORREO: {e}"
         )
-        raise
+
+        # El correo no debe impedir que se complete
+        # el registro del visitante o empleado.
+        return False

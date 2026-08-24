@@ -319,16 +319,33 @@ def registrar_ingreso(request):
             visit_mock = {
                 'id': permiso.id,
                 'is_employee_mock': True,
+            
                 'visitor': {
                     'first_name': empleado.first_name,
                     'last_name': empleado.last_name,
                     'visitor_type': 'permiso_empleado',
-                    'get_visitor_type_display':
-                        'Permiso de Empleado',
-                    'company': empleado.company
+                    'get_visitor_type_display': 'Permiso de Empleado',
+                    'company': empleado.company,
+            
+                    'document_id': empleado.employee_id,
+            
+                    'emergency_contact_name': (
+                        empleado.emergency_contact_name or ''
+                    ),
+            
+                    'emergency_contact_relationship': (
+                        empleado.emergency_contact_relationship or ''
+                    ),
+            
+                    'emergency_contact_phone': (
+                        empleado.emergency_contact or ''
+                    ),
                 },
+            
                 'token_qr': permiso.token_qr,
+            
                 'area': empleado.area,
+            
                 'entry_time': getattr(
                     permiso,
                     'departure_time',

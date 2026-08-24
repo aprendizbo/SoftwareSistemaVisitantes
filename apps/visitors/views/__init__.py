@@ -7,8 +7,11 @@ from .checkout import (
     registrar_salida,
 )
 
-from ..legacy_views import (
-    registrar_regreso_empleado,
+from .busquedas import (
     buscar_visitante,
     buscar_empleado,
+)
+
+from .permisos import (
+    registrar_regreso_empleado,
 )

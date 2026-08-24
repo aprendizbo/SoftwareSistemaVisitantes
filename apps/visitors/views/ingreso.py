@@ -135,6 +135,37 @@ def registrar_ingreso(request):
                     }
                 )
 
+            # =========================================================
+            # VALIDAR PERMISO ACTIVO DUPLICADO
+            # =========================================================
+            permiso_activo = (
+                EmployeePermission.objects
+                .filter(
+                    employee__employee_id=document_id,
+                    status='ACTIVO'
+                )
+                .first()
+            )
+
+            if permiso_activo:
+                messages.error(
+                    request,
+                    f"El empleado con documento {document_id} "
+                    "ya tiene un permiso activo. "
+                    "No es posible registrar otro permiso hasta que "
+                    "registre su regreso."
+                )
+
+                return render(
+                    request,
+                    'visitors/registrar_ingreso.html',
+                    {
+                        'visitor_form': v_form,
+                        'visit_form': vi_form,
+                        'permission_form': permission_form,
+                    }
+                )
+
             if not permission_form.is_valid():
                 messages.error(
                     request,
@@ -378,6 +409,37 @@ def registrar_ingreso(request):
                 v_form.cleaned_data['document_id']
             )
 
+            # =========================================================
+            # VALIDAR VISITANTE YA EN INSTALACIONES
+            # =========================================================
+            visita_activa = (
+                Visit.objects
+                .filter(
+                    visitor__document_id=document_id,
+                    status='ingresado'
+                )
+                .first()
+            )
+
+            if visita_activa:
+                messages.error(
+                    request,
+                    f"El visitante con documento {document_id} "
+                    "ya se encuentra en instalaciones. "
+                    "No es posible registrar un nuevo ingreso "
+                    "hasta que registre su salida."
+                )
+
+                return render(
+                    request,
+                    'visitors/registrar_ingreso.html',
+                    {
+                        'visitor_form': v_form,
+                        'visit_form': vi_form,
+                        'permission_form': permission_form,
+                    }
+                )
+
             visitor_db, created = Visitor.objects.get_or_create(
                 document_id=document_id,
                 defaults={
@@ -531,6 +593,17 @@ def registrar_ingreso(request):
                 'hora_movimiento': timezone.localtime(),
                 'imagen_disponible': bool(
                     imagen_bytes_adjuntar
+                ),
+
+                # CONTACTO DE EMERGENCIA
+                'contacto_emergencia': (
+                    visitor_db.emergency_contact_name
+                ),
+                'parentesco_emergencia': (
+                    visitor_db.emergency_contact_relationship
+                ),
+                'telefono_emergencia': (
+                    visitor_db.emergency_contact_phone
                 ),
             }
 

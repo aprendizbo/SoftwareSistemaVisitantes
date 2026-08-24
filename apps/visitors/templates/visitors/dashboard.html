@@ -332,6 +332,24 @@
                                     <th>Celular</th>
                                     <td>{{ visita.visitor.phone_number|default:"No registrado" }}</td>
                                 </tr>
+                                
+                                <!-- ========================================================= -->
+                                <!-- NUEVOS CAMPOS DE CONTACTO DE EMERGENCIA                   -->
+                                <!-- ========================================================= -->
+                                <tr>
+                                    <th>Contacto Emergencia</th>
+                                    <td>{{ visita.visitor.emergency_contact_name|default:"No registrado" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Parentesco</th>
+                                    <td>{{ visita.visitor.emergency_contact_relationship|default:"No registrado" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tel. Emergencia</th>
+                                    <td>{{ visita.visitor.emergency_contact_phone|default:"No registrado" }}</td>
+                                </tr>
+                                <!-- ========================================================= -->
+
                                 <tr>
                                     <th>Tipo</th>
                                     <td>{{ visita.visitor.get_visitor_type_display }}</td>

@@ -260,6 +260,34 @@
                                     </tr>
                                     {% endif %}
 
+                                    <!-- ========================================== -->
+                                    <!-- CONTACTO DE EMERGENCIA                     -->
+                                    <!-- ========================================== -->
+                                    {% if contacto_emergencia or parentesco_emergencia or telefono_emergencia %}
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Contacto de emergencia:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            <strong>{{ contacto_emergencia|default:"No registrado" }}</strong>
+                                            {% if parentesco_emergencia %}
+                                                <br>
+                                                <span style="color: #6b7280; font-size: 0.9em;">
+                                                    Parentesco: {{ parentesco_emergencia }}
+                                                </span>
+                                            {% endif %}
+                                            {% if telefono_emergencia %}
+                                                <br>
+                                                <span style="color: #6b7280; font-size: 0.9em;">
+                                                    Teléfono: {{ telefono_emergencia }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    <!-- ========================================== -->
+
                                     <tr>
                                         <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
                                             Token Asignado:

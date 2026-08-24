@@ -29,90 +29,162 @@ from apps.employees.models import Employee, EmployeePermission
 @login_required
 def registrar_ingreso(request):
     if request.method == 'POST':
-        
-        # --- CÓDIGO TEMPORAL PARA DEBUG ---
+
         print("====================================")
         print("TIPO:", request.POST.get('visitor_type'))
         print("PHOTO:", request.POST.get('photo_base64'))
         print("LEN:", len(request.POST.get('photo_base64', '')))
         print("====================================")
-        # ----------------------------------
 
         post_data = request.POST.copy()
         tipo_ingreso = post_data.get('visitor_type', '')
 
         visitor_instance = None
         document_id = post_data.get('document_id')
+
         if document_id:
             visitor_instance = Visitor.objects.filter(
                 document_id=document_id
             ).first()
-        
+
         v_form = VisitorForm(
             post_data,
             instance=visitor_instance
         )
-        vi_form = VisitForm(post_data, request.FILES)
 
-        es_permiso_empleado = (tipo_ingreso == 'permiso_empleado')
+        vi_form = VisitForm(
+            post_data,
+            request.FILES
+        )
+
+        permission_form = EmployeePermissionForm(
+            post_data,
+            request.FILES
+        )
+
+        es_permiso_empleado = (
+            tipo_ingreso == 'permiso_empleado'
+        )
 
         # =========================================================
-        # FLUJO A: EN PERMISO (ÚNICAMENTE EMPLEADOS)
+        # FLUJO A: EN PERMISO - EMPLEADOS
         # =========================================================
         if es_permiso_empleado:
+
             document_id = post_data.get('document_id')
             first_name = post_data.get('first_name', '')
             last_name = post_data.get('last_name', '')
-            area_empleado = post_data.get('area', 'RECEPCION')
-            empresa_empleado = post_data.get('company', '')
-            motivo_form = post_data.get('reason_type', 'PERSONAL')
 
             if not document_id:
-                messages.error(request, "El número de documento es obligatorio para procesar el permiso.")
-                return render(request, 'visitors/registrar_ingreso.html', {'visitor_form': v_form, 'visit_form': vi_form})
+                messages.error(
+                    request,
+                    "El número de documento es obligatorio para procesar el permiso."
+                )
 
-            # --- CORRECCIÓN APLICADA AQUÍ: Guardar first_name y last_name ---
+                return render(
+                    request,
+                    'visitors/registrar_ingreso.html',
+                    {
+                        'visitor_form': v_form,
+                        'visit_form': vi_form,
+                        'permission_form': permission_form,
+                    }
+                )
+
+            if not permission_form.is_valid():
+                messages.error(
+                    request,
+                    "Verifica el tipo de permiso, el detalle y el correo de notificación."
+                )
+
+                return render(
+                    request,
+                    'visitors/registrar_ingreso.html',
+                    {
+                        'visitor_form': v_form,
+                        'visit_form': vi_form,
+                        'permission_form': permission_form,
+                    }
+                )
+
             empleado, creado = Employee.objects.get_or_create(
-                employee_id=document_id,
+                document_id=document_id,
                 defaults={
                     'first_name': first_name,
                     'last_name': last_name,
-                    'document_type': post_data.get('document_type', 'cedula'),
-                    'area': area_empleado,
-                    'company': empresa_empleado,
+                    'document_type': post_data.get(
+                        'document_type',
+                        'cedula'
+                    ),
+                    'area': post_data.get(
+                        'area',
+                        ''
+                    ),
+                    'company': 'BOCCHERINI S.A.S',
+                    'phone_number': post_data.get(
+                        'phone_number',
+                        ''
+                    ),
+                    'emergency_contact_name': post_data.get(
+                        'emergency_contact_name',
+                        ''
+                    ),
+                    'emergency_contact_relationship': post_data.get(
+                        'emergency_contact_relationship',
+                        ''
+                    ),
+                    'emergency_contact_phone': post_data.get(
+                        'emergency_contact_phone',
+                        ''
+                    ),
                 }
             )
-
+            
             if not creado:
                 empleado.first_name = first_name
                 empleado.last_name = last_name
-                empleado.area = area_empleado
-                empleado.company = empresa_empleado
-                empleado.document_type = post_data.get('document_type', 'cedula')
+                empleado.document_type = post_data.get(
+                    'document_type',
+                    'cedula'
+                )
+                empleado.area = post_data.get(
+                    'area',
+                    empleado.area
+                )
+                empleado.company = 'BOCCHERINI S.A.S'
+                empleado.phone_number = post_data.get(
+                    'phone_number',
+                    ''
+                )
+                empleado.emergency_contact_name = post_data.get(
+                    'emergency_contact_name',
+                    ''
+                )
+                empleado.emergency_contact_relationship = post_data.get(
+                    'emergency_contact_relationship',
+                    ''
+                )
+                empleado.emergency_contact_phone = post_data.get(
+                    'emergency_contact_phone',
+                    ''
+                )
                 empleado.save()
-            # --------------------------------------------------------
 
-            tipo_permiso = 'LABORAL'
-            if motivo_form == 'entrevista': tipo_permiso = 'MEDICINA'
-            elif motivo_form == 'otro': tipo_permiso = 'PERSONAL'
+            tipo_permiso = permission_form.cleaned_data.get(
+                'permit_type'
+            )
 
-            token_nuevo = get_random_string(length=8).upper()
+            photo_data = request.POST.get(
+                'photo_base64',
+                ''
+            )
             
-            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (BLOQUE PERMISO) ---
-            photo_data = request.POST.get('photo_base64', '')
-            print("PERMISO FOTO LEN:", len(photo_data))
-            print("PERMISO FOTO PRESENTE:", bool(photo_data))
-            imagen_bytes_adjuntar = None
+            imagen_bytes_adjuntar = obtener_imagen_base64(
+                photo_data
+            )
 
-            if photo_data and 'base64,' in photo_data:
-                try:
-                    fmt, imgstr = photo_data.split(';base64,')
-                    imagen_bytes_adjuntar = base64.b64decode(imgstr)
-                except Exception:
-                    pass
-
-            # --- NUEVO CÓDIGO AÑADIDO: Reutilizar foto de empleado ---
             if not imagen_bytes_adjuntar:
+
                 ultimo_permiso = (
                     EmployeePermission.objects
                     .filter(
@@ -120,51 +192,50 @@ def registrar_ingreso(request):
                         photo__isnull=False
                     )
                     .exclude(photo='')
-                    .order_by('-departure_time')
+                    .order_by('-id')
                     .first()
                 )
 
                 if ultimo_permiso and ultimo_permiso.photo:
-                    try:
-                        with ultimo_permiso.photo.open('rb') as f:
-                            imagen_bytes_adjuntar = f.read()
+                    imagen_bytes_adjuntar = leer_foto_storage(
+                        ultimo_permiso.photo
+                    )
 
-                        print(
-                            f"♻ REUTILIZANDO FOTO EMPLEADO: "
-                            f"{ultimo_permiso.photo.name}"
-                        )
+            detalle_permiso = permission_form.cleaned_data.get(
+                'detalle_adicional'
+            )
 
-                    except Exception as e:
-                        print(
-                            "ERROR REUTILIZANDO FOTO EMPLEADO:",
-                            e
-                        )
+            correo_destino = permission_form.cleaned_data.get(
+                'correo_notificar'
+            )
 
-            correo_destino = post_data.get('correo_notificar')
-            
-            # --- CREACIÓN DEL PERMISO ---
             permiso = EmployeePermission.objects.create(
                 employee=empleado,
                 permit_type=tipo_permiso,
                 status='ACTIVO',
-                token_qr=token_nuevo,
                 correo_notificar=correo_destino,
-                detalle_adicional=post_data.get('reason_detail', '')
+                detalle_adicional=detalle_permiso,
             )
 
-            # --- CAMBIO APLICADO: Verificación combinada de foto ---
-            if imagen_bytes_adjuntar and not permiso.photo:
+            if hasattr(permiso, 'photo') and imagen_bytes_adjuntar and not permiso.photo:
                 permiso.photo.save(
                     f"permiso_{permiso.id}.jpg",
-                    ContentFile(imagen_bytes_adjuntar),
+                    ContentFile(
+                        imagen_bytes_adjuntar
+                    ),
                     save=True
                 )
 
-            # Referencias a nombre actualizadas
-            nombre_completo_emp = f"{empleado.first_name} {empleado.last_name}"
-            asunto_emp = f"🚨 Empleado en Permiso: {nombre_completo_emp}"
+            nombre_completo_emp = (
+                f"{empleado.first_name} "
+                f"{empleado.last_name}"
+            )
 
-            # Construir el contexto para la nueva plantilla de correo
+            asunto_emp = (
+                f"🚨 Empleado en Permiso: "
+                f"{nombre_completo_emp}"
+            )
+
             if permiso.correo_notificar:
                 contexto_emp = {
                     'movimiento': 'salida',
@@ -173,59 +244,79 @@ def registrar_ingreso(request):
                     'documento': document_id,
                     'nombre_completo': nombre_completo_emp,
                     'tipo_permiso': tipo_permiso,
-                    'detalle_permiso': post_data.get('reason_detail', ''),
+                    'detalle_permiso': detalle_permiso,
                     'token_qr': permiso.token_qr,
                     'empresa': empleado.company,
                     'area': empleado.area,
+                    'celular': empleado.phone_number,
+                    'contacto_emergencia': (
+                        empleado.emergency_contact_name
+                    ),
+                    'telefono_emergencia': (
+                        empleado.emergency_contact_phone
+                    ),
                     'hora_movimiento': timezone.localtime(),
-                    'imagen_disponible': bool(imagen_bytes_adjuntar),
+                    'imagen_disponible': bool(
+                        imagen_bytes_adjuntar
+                    ),
                 }
 
-                # Llamada correcta al nuevo módulo email.py
                 enviar_alerta_email(
-                    asunto_emp, 
-                    permiso.correo_notificar, 
-                    contexto_emp, 
+                    asunto_emp,
+                    permiso.correo_notificar,
+                    contexto_emp,
                     imagen_bytes_adjuntar
                 )
 
-            # Generación de QR en Base64
-            qr = qrcode.QRCode(version=1, box_size=8, border=4)
-            qr.add_data(permiso.token_qr)
-            qr.make(fit=True)
-            buffer = io.BytesIO()
-            qr.make_image(fill_color="black", back_color="white").save(buffer, format='PNG')
-            qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            qr_base64 = generar_qr_base64(
+                permiso.token_qr
+            )
 
             visit_mock = {
                 'id': permiso.id,
                 'is_employee_mock': True,
                 'visitor': {
-                    'first_name': empleado.first_name, 
-                    'last_name': empleado.last_name, 
+                    'first_name': empleado.first_name,
+                    'last_name': empleado.last_name,
                     'visitor_type': 'permiso_empleado',
-                    'get_visitor_type_display': 'Permiso de Empleado',
-                    'company': 'PERSONAL INTERNO'
+                    'get_visitor_type_display':
+                        'Permiso de Empleado',
+                    'company': empleado.company
                 },
                 'token_qr': permiso.token_qr,
                 'area': empleado.area,
-                'entry_time': getattr(permiso, 'departure_time', timezone.now()),
+                'entry_time': getattr(
+                    permiso,
+                    'departure_time',
+                    timezone.now()
+                ),
             }
 
-            return render(request, 'visitors/registrar_ingreso.html', {
-                'visitor_form': VisitorForm(),
-                'visit_form': VisitForm(),
-                'qr_base64': qr_base64,
-                'v_exitosa': visit_mock,
-            })
+            return render(
+                request,
+                'visitors/registrar_ingreso.html',
+                {
+                    'visitor_form': VisitorForm(),
+                    'visit_form': VisitForm(),
+                    'permission_form': EmployeePermissionForm(),
+                    'qr_base64': qr_base64,
+                    'v_exitosa': visit_mock,
+                }
+            )
 
         # =========================================================
         # FLUJO B: VISITANTES EXTERNOS
         # =========================================================
-        elif not es_permiso_empleado and v_form.is_valid() and vi_form.is_valid():
-            document_id = v_form.cleaned_data['document_id']
-            
-            # --- NUEVO: Se agregaron phone_number y emergency_contact ---
+        elif (
+            not es_permiso_empleado
+            and v_form.is_valid()
+            and vi_form.is_valid()
+        ):
+
+            document_id = (
+                v_form.cleaned_data['document_id']
+            )
+
             visitor_db, created = Visitor.objects.get_or_create(
                 document_id=document_id,
                 defaults={
@@ -234,8 +325,22 @@ def registrar_ingreso(request):
                     'document_type': v_form.cleaned_data['document_type'],
                     'visitor_type': tipo_ingreso,
                     'company': v_form.cleaned_data['company'],
-                    'phone_number': v_form.cleaned_data.get('phone_number', ''),
-                    'emergency_contact': v_form.cleaned_data.get('emergency_contact', ''),
+                    'phone_number': v_form.cleaned_data.get(
+                        'phone_number',
+                        ''
+                    ),
+                    'emergency_contact_name': v_form.cleaned_data.get(
+                        'emergency_contact_name',
+                        ''
+                    ),
+                    'emergency_contact_relationship': v_form.cleaned_data.get(
+                        'emergency_contact_relationship',
+                        ''
+                    ),
+                    'emergency_contact_phone': v_form.cleaned_data.get(
+                        'emergency_contact_phone',
+                        ''
+                    ),
                 }
             )
 
@@ -245,39 +350,65 @@ def registrar_ingreso(request):
                 visitor_db.document_type = v_form.cleaned_data['document_type']
                 visitor_db.visitor_type = tipo_ingreso
                 visitor_db.company = v_form.cleaned_data['company']
-                visitor_db.phone_number = v_form.cleaned_data.get('phone_number', '')
-                visitor_db.emergency_contact = v_form.cleaned_data.get('emergency_contact', '')
+            
+                visitor_db.phone_number = v_form.cleaned_data.get(
+                    'phone_number',
+                    ''
+                )
+            
+                visitor_db.emergency_contact_name = v_form.cleaned_data.get(
+                    'emergency_contact_name',
+                    ''
+                )
+            
+                visitor_db.emergency_contact_relationship = v_form.cleaned_data.get(
+                    'emergency_contact_relationship',
+                    ''
+                )
+            
+                visitor_db.emergency_contact_phone = v_form.cleaned_data.get(
+                    'emergency_contact_phone',
+                    ''
+                )
+            
                 visitor_db.save()
 
-            visit = vi_form.save(commit=False)
+            visit = vi_form.save(
+                commit=False
+            )
+
             visit.visitor = visitor_db
             visit.status = 'ingresado'
-            visit.correo_notificar = vi_form.cleaned_data.get('correo_notificar')
+            visit.correo_notificar = (
+                vi_form.cleaned_data.get(
+                    'correo_notificar'
+                )
+            )
+
             visit.save()
 
-            # --- CAPTURA Y DECODIFICACIÓN DE FOTO (BLOQUE VISITANTE) ---
-            photo_data = request.POST.get('photo_base64', '')
-            print("VISITANTE FOTO LEN:", len(photo_data))
-            print("VISITANTE FOTO PRESENTE:", bool(photo_data))
-            imagen_bytes_adjuntar = None
+            # =====================================================
+            # FOTO
+            # =====================================================
 
-            if photo_data and 'base64,' in photo_data:
-                try:
-                    fmt, imgstr = photo_data.split(';base64,')
-                    imagen_bytes_adjuntar = base64.b64decode(imgstr)
+            photo_data = request.POST.get(
+                'photo_base64',
+                ''
+            )
+            
+            imagen_bytes_adjuntar = obtener_imagen_base64(
+                photo_data
+            )
+            
+            if imagen_bytes_adjuntar:
+                visit.photo.save(
+                    f"visita_{visit.id}.jpg",
+                    ContentFile(imagen_bytes_adjuntar),
+                    save=True
+                )
 
-                    visit.photo.save(
-                        f"visita_{visit.id}.jpg",
-                        ContentFile(imagen_bytes_adjuntar),
-                        save=True
-                    )
-                    print("📷 FOTO NUEVA CAPTURADA")
-
-                except Exception as e:
-                    print("ERROR FOTO:", e)
-
-            # Si NO tomó foto nueva, reutilizar la última foto
             if not imagen_bytes_adjuntar:
+
                 ultima_visita_con_foto = (
                     Visit.objects
                     .filter(
@@ -289,80 +420,114 @@ def registrar_ingreso(request):
                     .first()
                 )
 
-                if ultima_visita_con_foto and ultima_visita_con_foto.photo:
-                    try:
-                        with ultima_visita_con_foto.photo.open('rb') as f:
-                            imagen_bytes_adjuntar = f.read()
+                if (
+                    ultima_visita_con_foto
+                    and ultima_visita_con_foto.photo
+                ):
 
+                    imagen_bytes_adjuntar = leer_foto_storage(
+                        ultima_visita_con_foto.photo
+                    )
+                    
+                    if imagen_bytes_adjuntar:
                         visit.photo = ultima_visita_con_foto.photo
-                        visit.save(update_fields=['photo'])
-
-                        print(
-                            f"♻ REUTILIZANDO FOTO: "
-                            f"{ultima_visita_con_foto.photo.name}"
+                        visit.save(
+                            update_fields=['photo']
                         )
 
-                    except Exception as e:
-                        print("ERROR REUTILIZANDO FOTO:", e)
+            # =====================================================
+            # CORREO
+            # =====================================================
 
-            correo_destino = visit.correo_notificar
-            nom_completo = f"{visitor_db.first_name} {visitor_db.last_name}"
-            
-            es_entrevistado = (visitor_db.visitor_type == 'entrevistado')
-            asunto_vis = f"{'👤 Entrevistado' if es_entrevistado else '🔔 Visitante'} en Instalaciones: {nom_completo}"
+            correo_destino = (
+                visit.correo_notificar
+            )
 
-            # Construir el contexto para la nueva plantilla de correo
-            if correo_destino:
-                contexto_vis = {
-                    'movimiento': 'entrada',
-                    'es_permiso_empleado': False,
-                    'visitante': visitor_db,
-                    'visita': visit,
-                    'nombre_completo': nom_completo,
-                    'es_entrevistado': es_entrevistado,
-                    'empresa': visitor_db.company,
-                    'area': visit.area,
-                    'hora_movimiento': timezone.localtime(),
-                    'imagen_disponible': bool(imagen_bytes_adjuntar),
-                }
+            nom_completo = (
+                f"{visitor_db.first_name} "
+                f"{visitor_db.last_name}"
+            )
 
-                # Llamada correcta al nuevo módulo email.py
-                enviar_alerta_email(
-                    asunto_vis, 
-                    correo_destino, 
-                    contexto_vis, 
+            es_entrevistado = (
+                visitor_db.visitor_type
+                == 'entrevistado'
+            )
+
+            asunto_vis = (
+                f"{'👤 Entrevistado' if es_entrevistado else '🔔 Visitante'} "
+                f"en Instalaciones: {nom_completo}"
+            )
+
+            contexto_vis = {
+                'movimiento': 'entrada',
+                'es_permiso_empleado': False,
+                'visitante': visitor_db,
+                'visita': visit,
+                'nombre_completo': nom_completo,
+                'es_entrevistado': es_entrevistado,
+                'empresa': visitor_db.company,
+                'area': visit.area,
+                'hora_movimiento': timezone.localtime(),
+                'imagen_disponible': bool(
                     imagen_bytes_adjuntar
-                )
+                ),
+            }
 
-            # Generación de QR
-            qr = qrcode.QRCode(version=1, box_size=8, border=4)
-            qr.add_data(visit.token_qr)
-            qr.make(fit=True)
-            buffer = io.BytesIO()
-            qr.make_image(fill_color="black", back_color="white").save(buffer, format='PNG')
-            qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            enviar_alerta_email(
+                asunto_vis,
+                correo_destino,
+                contexto_vis,
+                imagen_bytes_adjuntar
+            )
 
-            return render(request, 'visitors/registrar_ingreso.html', {
-                'visitor_form': VisitorForm(),
-                'visit_form': VisitForm(),
-                'qr_base64': qr_base64,
-                'v_exitosa': visit,
-            })
-            
-        # Si la petición es POST pero fallaron las validaciones de los formularios en el Flujo B
-        messages.error(request, "Error al registrar. Por favor verifica que todos los campos requeridos estén llenos.")
-        return render(request, 'visitors/registrar_ingreso.html', {
-            'visitor_form': v_form,
-            'visit_form': vi_form
-        })
+            # =====================================================
+            # QR
+            # =====================================================
+
+            qr_base64 = generar_qr_base64(
+                visit.token_qr
+            )
+
+            return render(
+                request,
+                'visitors/registrar_ingreso.html',
+                {
+                    'visitor_form': VisitorForm(),
+                    'visit_form': VisitForm(),
+                    'permission_form': EmployeePermissionForm(),
+                    'qr_base64': qr_base64,
+                    'v_exitosa': visit,
+                }
+            )
+
+        messages.error(
+            request,
+            "Error al registrar. Por favor verifica que todos los campos requeridos estén llenos."
+        )
+
+        return render(
+            request,
+            'visitors/registrar_ingreso.html',
+            {
+                'visitor_form': v_form,
+                'visit_form': vi_form,
+                'permission_form': permission_form,
+            }
+        )
 
     # =========================================================
-    # FLUJO C: SOLICITUD GET (Carga inicial de la página)
+    # FLUJO C: GET
     # =========================================================
-    return render(request, 'visitors/registrar_ingreso.html', {
-        'visitor_form': VisitorForm(),
-        'visit_form': VisitForm()
-    })
+
+    return render(
+        request,
+        'visitors/registrar_ingreso.html',
+        {
+            'visitor_form': VisitorForm(),
+            'visit_form': VisitForm(),
+            'permission_form': EmployeePermissionForm(),
+        }
+    )
 
 # Nota: checkout_scanner, checkout_por_token, confirmar_checkout y registrar_salida 
 # están ahora en checkout.py (como trabajamos en los pasos anteriores),
@@ -475,9 +640,9 @@ def buscar_visitante(request):
                 'emergency_contact_relationship',
                 ''
             ),
-            'emergency_contact': getattr(
+            'emergency_contact_phone': getattr(
                 visitante,
-                'emergency_contact',
+                'emergency_contact_phone',
                 ''
             ),
             'total_visitas': visitas.count(),
@@ -491,8 +656,6 @@ def buscar_visitante(request):
         return JsonResponse({'encontrado': False})
 
 
-# --- CORRECCIÓN APLICADA: Respuesta JSON con first_name y last_name ---
-@login_required
 def buscar_empleado(request):
     document_id = request.GET.get('document_id')
 
@@ -500,30 +663,92 @@ def buscar_empleado(request):
         return JsonResponse({'encontrado': False})
 
     try:
-        empleado = Employee.objects.get(employee_id=document_id)
-        permisos = EmployeePermission.objects.filter(employee=empleado).order_by('-departure_time')
-        
+        empleado = Employee.objects.get(
+            employee_id=document_id
+        )
+
+        permisos = EmployeePermission.objects.filter(
+            employee=empleado
+        ).order_by('-departure_time')
+
         historial = [
             {
-                'fecha': timezone.localtime(p.departure_time).strftime('%d/%m/%Y %H:%M'),
-                'tipo': getattr(p, 'permit_type', 'PERSONAL')
+                'fecha': timezone.localtime(
+                    p.departure_time
+                ).strftime('%d/%m/%Y %H:%M'),
+                'tipo': getattr(
+                    p,
+                    'permit_type',
+                    'PERSONAL'
+                )
             }
             for p in permisos[:5]
         ]
 
-        ultima_foto = permisos.filter(photo__isnull=False).first()
+        ultima_foto = permisos.filter(
+            photo__isnull=False
+        ).first()
 
         return JsonResponse({
             'encontrado': True,
+
             'first_name': empleado.first_name,
             'last_name': empleado.last_name,
-            'area': getattr(empleado, 'area', ''),
-            'company': getattr(empleado, 'company', ''),
-            'document_type': getattr(empleado, 'document_type', 'cedula'),
+
+            'area': getattr(
+                empleado,
+                'area',
+                ''
+            ),
+
+            'company': getattr(
+                empleado,
+                'company',
+                ''
+            ),
+
+            'document_type': getattr(
+                empleado,
+                'document_type',
+                'cedula'
+            ),
+
+            'phone_number': getattr(
+                empleado,
+                'phone_number',
+                ''
+            ),
+
+            'emergency_contact_name': getattr(
+                empleado,
+                'emergency_contact_name',
+                ''
+            ),
+
+            'emergency_contact_relationship': getattr(
+                empleado,
+                'emergency_contact_relationship',
+                ''
+            ),
+
+            'emergency_contact_phone': getattr(
+                empleado,
+                'emergency_contact',
+                ''
+            ),
+
             'total_permisos': permisos.count(),
+
             'historial': historial,
-            'foto': ultima_foto.photo.url if ultima_foto and ultima_foto.photo else ''
+
+            'foto': (
+                ultima_foto.photo.url
+                if ultima_foto and ultima_foto.photo
+                else ''
+            )
         })
 
     except Employee.DoesNotExist:
-        return JsonResponse({'encontrado': False})
+        return JsonResponse({
+            'encontrado': False
+        })

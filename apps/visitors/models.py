@@ -29,12 +29,6 @@ class Visitor(models.Model):
         null=True,
         verbose_name='Número Celular'
     )
-    emergency_contact = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        verbose_name='Número de Emergencia'
-    )
     company = models.CharField(
         max_length=100,
         blank=True,
@@ -46,21 +40,21 @@ class Visitor(models.Model):
         max_length=150,
         blank=True,
         null=True,
-        verbose_name='Nombre Contacto de Emergencia'
+        verbose_name="Nombre Contacto de Emergencia"
     )
 
     emergency_contact_phone = models.CharField(
-        max_length=30,
+        max_length=20,
         blank=True,
         null=True,
-        verbose_name='Número Contacto de Emergencia'
+        verbose_name="Número de Emergencia"
     )
 
     emergency_contact_relationship = models.CharField(
         max_length=100,
         blank=True,
         null=True,
-        verbose_name='Parentesco Contacto de Emergencia'
+        verbose_name="Parentesco Contacto de Emergencia"
     )
 
     class Meta:
@@ -131,11 +125,63 @@ class Visit(models.Model):
 # ==========================================
 
 class Employee(models.Model):
+    TIPO_DOC = [
+        ('cedula', 'Cédula de Ciudadanía'),
+        ('ce', 'Cédula de Extranjería'),
+        ('pasaporte', 'Pasaporte'),
+    ]
+
     first_name = models.CharField(max_length=100, verbose_name='Nombre')
     last_name = models.CharField(max_length=100, verbose_name='Apellido')
-    document_id = models.CharField(max_length=50, unique=True, verbose_name='Número de Documento')
-    area = models.CharField(max_length=100, verbose_name='Área/Departamento')
-    is_active = models.BooleanField(default=True, verbose_name='Empleado Activo')
+    document_type = models.CharField(
+        max_length=50,
+        choices=TIPO_DOC,
+        default='cedula',
+        verbose_name='Tipo de Documento'
+    )
+    document_id = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Número de Documento'
+    )
+    area = models.CharField(
+        max_length=100,
+        verbose_name='Área/Departamento'
+    )
+    company = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Empresa'
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Número Celular'
+    )
+    emergency_contact_name = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name='Nombre Contacto de Emergencia'
+    )
+    emergency_contact_relationship = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Parentesco Contacto de Emergencia'
+    )
+    emergency_contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Número de Emergencia'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Empleado Activo'
+    )
 
     class Meta:
         verbose_name = 'Empleado'

@@ -245,7 +245,9 @@ class VisitorAdmin(admin.ModelAdmin):
         "last_name",
         "document_id",
         "phone_number",
-        "emergency_contact",
+        "emergency_contact_name",
+        "emergency_contact_relationship",
+        "emergency_contact_phone",
         "visitor_type",
     )
     list_filter = ("visitor_type",)

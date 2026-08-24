@@ -314,7 +314,26 @@
                                             </tr>
                                             <tr>
                                                 <th>Contacto Emergencia</th>
-                                                <td>{{ visita.visitor.emergency_contact|default:"No registrado" }}</td>
+                                                <td>
+                                                    {% if visita.visitor.emergency_contact_name %}
+                                                        <strong>{{ visita.visitor.emergency_contact_name }}</strong>
+                                                        {% if visita.visitor.emergency_contact_relationship %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                {{ visita.visitor.emergency_contact_relationship }}
+                                                            </small>
+                                                        {% endif %}
+                                                        {% if visita.visitor.emergency_contact_phone %}
+                                                            <br>
+                                                            <small>
+                                                                <i class="bi bi-telephone-fill"></i>
+                                                                {{ visita.visitor.emergency_contact_phone }}
+                                                            </small>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        No registrado
+                                                    {% endif %}
+                                                </td>
                                             </tr>
                                             <tr><th>Tipo</th><td>{{ visita.visitor.get_visitor_type_display }}</td></tr>
                                             <tr><th>Empresa</th><td>{{ visita.visitor.company|default:"No registra" }}</td></tr>

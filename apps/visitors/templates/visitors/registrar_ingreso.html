@@ -98,10 +98,10 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Número de Emergencia</label>
-                            {{ visitor_form.emergency_contact }}
-                            {% if visitor_form.emergency_contact.errors %}
+                            {{ visitor_form.emergency_contact_phone }}
+                            {% if visitor_form.emergency_contact_phone.errors %}
                                 <div class="text-danger small">
-                                    {{ visitor_form.emergency_contact.errors }}
+                                    {{ visitor_form.emergency_contact_phone.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -112,58 +112,110 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Tipo ingreso/salida</label>  {{ visitor_form.visitor_type }}
+                            <label class="form-label fw-semibold">Tipo ingreso/salida</label>
+                            {{ visitor_form.visitor_type }}
+
                             {% if visitor_form.visitor_type.errors %}
-                                <div class="text-danger small">{{ visitor_form.visitor_type.errors }}</div>
+                                <div class="text-danger small">
+                                    {{ visitor_form.visitor_type.errors }}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <h5 class="mb-3 text-secondary border-bottom pb-2">
-                            <i class="bi bi-clipboard-fill"></i> Detalles del Registro    </h5>
-
+                            <i class="bi bi-clipboard-fill"></i> Detalles del Registro    
+                        </h5>
+                        
+                        <!-- EL CAMPO ÁREA AHORA ESTÁ FUERA DE SECCIÓN VISITANTE Y SECCIÓN EMPLEADO -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Motivo</label>  {{ visit_form.reason_type }}
-                            {% if visit_form.reason_type.errors %}
-                                <div class="text-danger small">{{ visit_form.reason_type.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Detalle Adicional <span class="text-muted fw-normal">(Opcional)</span></label>
-                            {{ visit_form.reason_detail }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Responsable</label>
-                            {{ visit_form.person_to_visit }}
-                            {% if visit_form.person_to_visit.errors %}
-                                <div class="text-danger small">{{ visit_form.person_to_visit.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Área de Destino</label>
+                            <label class="form-label fw-semibold">Área / Departamento</label>
                             {{ visit_form.area }}
-                            {% if visit_form.area.errors %}
-                                <div class="text-danger small">{{ visit_form.area.errors }}</div>
-                            {% endif %}
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold text-primary">
-                                <i class="bi bi-envelope-fill"></i> Correo a Informar (Boccherini)
-                            </label>
-                            {{ visit_form.correo_notificar }}
-                            {% if visit_form.correo_notificar.errors %}
-                                <div class="text-danger fw-bold small mt-1">
-                                    {% for error in visit_form.correo_notificar.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                            {% if visit_form.area.errors %}
+                                <div class="text-danger small">
+                                    {{ visit_form.area.errors }}
                                 </div>
                             {% endif %}
                         </div>
+
+                        <div id="seccion-visitante">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Motivo</label>
+                                {{ visit_form.reason_type }}
+
+                                {% if visit_form.reason_type.errors %}
+                                    <div class="text-danger small">
+                                        {{ visit_form.reason_type.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    Detalle Adicional
+                                    <span class="text-muted fw-normal">(Opcional)</span>
+                                </label>
+
+                                {{ visit_form.reason_detail }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Responsable</label>
+                                {{ visit_form.person_to_visit }}
+
+                                {% if visit_form.person_to_visit.errors %}
+                                    <div class="text-danger small">
+                                        {{ visit_form.person_to_visit.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-primary">
+                                    <i class="bi bi-envelope-fill"></i>
+                                    Correo a Informar (Boccherini)
+                                </label>
+
+                                {{ visit_form.correo_notificar }}
+
+                                {% if visit_form.correo_notificar.errors %}
+                                    <div class="text-danger fw-bold small mt-1">
+                                        {% for error in visit_form.correo_notificar.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div id="seccion-empleado" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    Tipo de Permiso
+                                </label>
+
+                                {{ permission_form.permit_type }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    Detalle / Justificación
+                                </label>
+
+                                {{ permission_form.detalle_adicional }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    Correo a Informar (Boccherini)
+                                </label>
+
+                                {{ permission_form.correo_notificar }}
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -171,7 +223,8 @@
 
                 <div class="text-center mb-4">
                     <h5 class="text-secondary border-bottom pb-2">
-                        <i class="bi bi-camera-fill"></i> Fotografía de Identificación    </h5>
+                        <i class="bi bi-camera-fill"></i> Fotografía de Identificación    
+                    </h5>
                     <video id="webcam" width="320" height="240" autoplay playsinline
                            class="border rounded bg-dark d-block mx-auto"></video>
                     <br>
@@ -194,7 +247,8 @@
                 </div>
 
                 <button type="submit" class="btn btn-success w-100 btn-lg">
-                    <i class="bi bi-arrow-left-right"></i> Registrar Ingreso/Salida   </button>
+                    <i class="bi bi-arrow-left-right"></i> Registrar Ingreso/Salida   
+                </button>
             </form>
         </div>
     </div>
@@ -207,11 +261,13 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="qrModalLabel">
-                    <i class="bi bi-check-circle-fill"></i> ¡Registro Procesado con Éxito!    </h5>
+                    <i class="bi bi-check-circle-fill"></i> ¡Registro Procesado con Éxito!    
+                </h5>
             </div>
             <div class="modal-body text-center py-4">
                 <p class="fs-5 mb-1">
-                    Persona: <strong>{{ v_exitosa.visitor.first_name }} {{ v_exitosa.visitor.last_name }}</strong>  </p>
+                    Persona: <strong>{{ v_exitosa.visitor.first_name }} {{ v_exitosa.visitor.last_name }}</strong>  
+                </p>
                 
                 <p class="mb-1">
                     Tipo: <span class="badge bg-secondary">{{ v_exitosa.visitor.get_visitor_type_display }}</span>
@@ -229,7 +285,7 @@
 
                 <p class="mb-3 text-muted">
                     Número de Emergencia:
-                    <strong>{{ v_exitosa.visitor.emergency_contact }}</strong>
+                    <strong>{{ v_exitosa.visitor.emergency_contact_phone }}</strong>
                 </p>
 
                 <p class="mb-3">
@@ -238,13 +294,15 @@
                 
                 <p class="mb-1 text-muted">Área: <strong>{{ v_exitosa.area }}</strong></p>
                 <p class="mb-3 text-muted">
-                    Hora de registro: <strong>{{ v_exitosa.entry_time|time:"H:i" }}</strong>  </p>
+                    Hora de registro: <strong>{{ v_exitosa.entry_time|time:"H:i" }}</strong>  
+                </p>
 
                 <div class="p-3 border rounded d-inline-block bg-light mb-2">
                     <img src="data:image/png;base64,{{ qr_base64 }}"
                          alt="Código QR" class="img-fluid" style="max-width: 200px;">
                 </div>
-                <p class="text-muted small">Escanea este código para registrar el próximo movimiento en el sistema.</p>  </div>
+                <p class="text-muted small">Escanea este código para registrar el próximo movimiento en el sistema.</p>  
+            </div>
             <div class="modal-footer justify-content-center gap-2">
                 <button type="button" class="btn btn-primary" onclick="imprimirGafete()">
                     <i class="bi bi-printer-fill"></i> Imprimir Gafete
@@ -338,18 +396,58 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 400);
     }
 
-    // PASO 6: JavaScript añadido antes del cierre de DOMContentLoaded
+    // Eventos y Lógica de Alternancia entre Visitante / Empleado
     const documentoInput = document.getElementById('id_document_id');
     if(documentoInput){
         documentoInput.addEventListener('blur', buscarPersona);
     }
 
-    // TERCER CAMBIO: Agregar evento 'change' al select de tipo de visitante
-    $('#id_visitor_type').on('change', buscarPersona);
+    const tipoIngreso = document.getElementById('id_visitor_type');
+    const seccionVisitante = document.getElementById('seccion-visitante');
+    const seccionEmpleado = document.getElementById('seccion-empleado');
 
+    function actualizarFormularioIngreso() {
+        if (!tipoIngreso) return;
+    
+        const esEmpleado = tipoIngreso.value === 'permiso_empleado';
+    
+        if (esEmpleado) {
+            seccionVisitante.style.display = 'none';
+            seccionEmpleado.style.display = 'block';
+    
+            // Desactivar únicamente los campos de la sección de visitante
+            seccionVisitante.querySelectorAll('input, select, textarea').forEach(campo => {
+                campo.disabled = true;
+            });
+    
+            // Activar los campos del permiso de empleado
+            seccionEmpleado.querySelectorAll('input, select, textarea').forEach(campo => {
+                campo.disabled = false;
+            });
+    
+        } else {
+            seccionVisitante.style.display = 'block';
+            seccionEmpleado.style.display = 'none';
+    
+            // Activar campos de visitante
+            seccionVisitante.querySelectorAll('input, select, textarea').forEach(campo => {
+                campo.disabled = false;
+            });
+    
+            // Desactivar campos de permiso de empleado
+            seccionEmpleado.querySelectorAll('input, select, textarea').forEach(campo => {
+                campo.disabled = true;
+            });
+        }
+    }
+
+    if (tipoIngreso) {
+        $(tipoIngreso).on('change', actualizarFormularioIngreso);
+        $(tipoIngreso).on('change', buscarPersona);
+        actualizarFormularioIngreso();
+    }
 });
 
-// PASO 6: Función buscarPersona añadida después de DOMContentLoaded
 function buscarPersona(){
     const documento = document.getElementById('id_document_id').value;
     const tipoIngreso = document.getElementById('id_visitor_type').value;
@@ -388,8 +486,17 @@ function buscarPersona(){
             if(document.getElementById('id_phone_number')){
                 document.getElementById('id_phone_number').value = data.phone_number || '';
             }
-            if(document.getElementById('id_emergency_contact')){
-                document.getElementById('id_emergency_contact').value = data.emergency_contact || '';
+            if(document.getElementById('id_emergency_contact_name')){
+                document.getElementById('id_emergency_contact_name').value =
+                    data.emergency_contact_name || '';
+            }
+            if(document.getElementById('id_emergency_contact_relationship')){
+                document.getElementById('id_emergency_contact_relationship').value =
+                    data.emergency_contact_relationship || '';
+            }
+            if(document.getElementById('id_emergency_contact_phone')){
+                document.getElementById('id_emergency_contact_phone').value =
+                    data.emergency_contact_phone || '';
             }
 
             if(document.getElementById('id_area')){
@@ -418,19 +525,17 @@ function buscarPersona(){
             if(document.getElementById('id_phone_number')){
                 document.getElementById('id_phone_number').value = data.phone_number || '';
             }
-            if(document.getElementById('id_emergency_contact')){
-                document.getElementById('id_emergency_contact').value =
-                    data.emergency_contact || '';
-            }
-            
             if(document.getElementById('id_emergency_contact_name')){
                 document.getElementById('id_emergency_contact_name').value =
                     data.emergency_contact_name || '';
             }
-
             if(document.getElementById('id_emergency_contact_relationship')){
                 document.getElementById('id_emergency_contact_relationship').value =
                     data.emergency_contact_relationship || '';
+            }
+            if(document.getElementById('id_emergency_contact_phone')){
+                document.getElementById('id_emergency_contact_phone').value =
+                    data.emergency_contact_phone || '';
             }
 
             info.innerHTML = `
@@ -440,10 +545,21 @@ function buscarPersona(){
             `;
         }
 
-        if(data.foto){
+        if (data.foto) {
             const preview = document.getElementById('foto-preview');
+            const photoInput = document.getElementById('id_photo_base64');
+
             preview.src = data.foto;
             preview.style.display = 'inline-block';
+
+            /*
+             * La foto ya existe en el servidor.
+             * Se muestra en recepción, pero no necesitamos
+             * convertirla nuevamente a base64.
+             *
+             * El backend seguirá teniendo su respaldo:
+             * si photo_base64 viene vacío, busca la última foto.
+             */
         }
     })
     .catch(error => {

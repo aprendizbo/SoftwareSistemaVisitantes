@@ -53,6 +53,13 @@ class Employee(models.Model):
         verbose_name="Nombre Contacto de Emergencia"
     )
 
+    emergency_contact_relationship = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Parentesco Contacto de Emergencia"
+    )
+
     emergency_contact = models.CharField(
         max_length=20,
         blank=True,

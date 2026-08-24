@@ -1,469 +1,406 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Panel Principal - Boccherini{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Tarjetas de Estadísticas */
+    .stat-card {
+        border-radius: 8px;
+        color: white;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: transform 0.2s ease-in-out;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card h6 { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9; margin-bottom: 5px; }
+    .stat-card h2 { font-size: 2.5rem; font-weight: 700; margin: 0; color: white !important; }
+    .stat-card small { font-size: 0.8rem; opacity: 0.8; }
+    .stat-card a { text-decoration: none; }
+
+    .bg-instalaciones { background-color: #1c2b42; }
+    .bg-visitantes { background-color: #256b5f; }
+    .bg-entrevistas { background-color: #b88a38; }
+    .bg-permisos { background-color: #89222c; }
+
+    /* Estilos de la tabla y paneles */
+    .panel-title { font-size: 1.1rem; font-weight: 600; color: #2c3545; }
+    .table th { font-weight: 600; color: #495057; font-size: 0.9rem; border-bottom: 2px solid #dee2e6; }
+    .table td { vertical-align: middle; font-size: 0.9rem; }
+    
+    .token-text { color: #8b1e28; font-weight: 600; font-family: monospace; font-size: 1.05rem; }
+    .name-text { color: #10437a; font-weight: 700; }
+    
+    /* Badges personalizados */
+    .badge-tipo { background-color: #6c757d; color: white; font-weight: 500; }
+    .badge-estado-activo { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; font-weight: 500; }
+    .badge-estado-permiso { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; font-weight: 500; }
+    
+    .badge-mov-regreso { background-color: #e2e3e5; color: #41464b; font-weight: 500;}
+    .badge-mov-salida { background-color: #f8d7da; color: #842029; font-weight: 500;}
+
+    /* Botones personalizados */
+    .btn-extraer { background-color: #4b5563; color: white; font-size: 0.85rem; }
+    .btn-extraer:hover { background-color: #374151; color: white; }
+    .btn-ingresar { background-color: #10437a; color: white; font-size: 0.85rem; }
+    .btn-ingresar:hover { background-color: #0b2e59; color: white; }
+    .btn-salida-rojo { background-color: #8b1e28; color: white; font-size: 0.8rem; padding: 4px 14px; border: none;}
+    .btn-salida-rojo:hover { background-color: #6a161e; color: white; }
+    .btn-reingreso-verde { background-color: #198754; color: white; font-size: 0.8rem; padding: 4px 14px; border: none;}
+    .btn-reingreso-verde:hover { background-color: #146c43; color: white; }
+
+    /* Lista lateral */
+    .movimiento-item { border-bottom: 1px solid #eee; padding: 12px 0; }
+    .movimiento-item:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-4 mt-4">
-
-    <div class="bg-white rounded shadow-sm mb-4 px-4 py-3">
-        <div class="d-flex align-items-center justify-content-center">
-
-            <img src="https://boccherinicol.vtexassets.com/assets/vtex.file-manager-graphql/images/117104a7-a9bf-4a1c-ba2b-c33ac4db466e___dc9a4962633b58475c7995a25825a981.jpg"
-                 alt="Logo Boccherini"
-                 style="height:70px; object-fit:contain;">
-
-            <div class="ms-4 text-start">
-                <h2 class="mb-0 fw-bold text-primary">
-                    Sistema de Control de Visitantes
-                </h2>
-                <small class="text-muted">
-                    Registro y seguimiento de ingresos, salidas y permisos
-                </small>
-            </div>
-
-        </div>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold text-secondary mb-0">
-            <i class="bi bi-speedometer2 text-primary"></i>
-            Panel Principal
-        </h4>
-        <div class="d-flex align-items-center gap-3">
-            <span class="text-muted small fw-bold" id="reloj-tiempo-real">
-                <i class="bi bi-calendar3"></i>
-                {% now "j \d\e F \d\e Y, H:i:s" %}
-            </span>
-            <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit"
-                        class="btn btn-outline-danger btn-sm fw-bold"
-                        onclick="return confirm('¿Desea cerrar sesión?');">
-                    <i class="bi bi-box-arrow-right"></i>
-                    Cerrar Sesión
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm bg-primary text-white h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="text-uppercase fw-bold text-white-50 small">En Instalaciones</h6>
-                        <a href="{% url 'dashboard:detalle_en_instalaciones' %}" class="text-white text-decoration-none">
-                            <h2 class="mb-0 fw-bold">{{ en_instalaciones_count }}</h2>
-                        </a>
-                        <small class="text-white-50">visitantes activos ahora</small>
-                    </div>
-                    <i class="bi bi-people-fill display-5 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm bg-success text-white h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="text-uppercase fw-bold text-white-50 small">Visitantes del Día</h6>
-                        <a href="{% url 'dashboard:detalle_visitantes_dia' %}" class="text-white text-decoration-none">
-                            <h2 class="mb-0 fw-bold">{{ visitantes_dia_count }}</h2>
-                        </a>
-                        <small class="text-white-50">registros de hoy</small>
-                    </div>
-                    <i class="bi bi-person-check-fill display-5 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm bg-warning text-dark h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="text-uppercase fw-bold text-muted small">Entrevistas Hoy</h6>
-                        <a href="{% url 'dashboard:detalle_entrevistas' %}" class="text-dark text-decoration-none">
-                            <h2 class="mb-0 fw-bold">{{ entrevistas_count }}</h2>
-                        </a>
-                        <small class="text-muted">entrevistados registrados</small>
-                    </div>
-                    <i class="bi bi-clipboard-data-fill display-5 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm bg-danger text-white h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="text-uppercase fw-bold text-white-50 small">Permisos Activos</h6>
-                        <a href="{% url 'dashboard:detalle_permisos' %}" class="text-white text-decoration-none">
-                            <h2 class="mb-0 fw-bold">{{ permisos_count }}</h2>
-                        </a>
-                        <small class="text-white-50">empleados fuera</small>
-                    </div>
-                    <i class="bi bi-door-open-fill display-5 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        
-        <div class="col-12 col-xl-9">
-            <div class="card border-0 shadow-sm">
-                
-                <div class="card-header bg-white py-3">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-
-                        <h6 class="mb-0 fw-bold text-secondary">
-                            <i class="bi bi-activity text-primary"></i>
-                            Personal en Instalaciones y Salidas Activas
-                        </h6>
-
-                        <div class="d-flex gap-2 flex-wrap">
-                            <a href="/admin/visitors/visit/" target="_blank"
-                               class="btn btn-outline-success btn-sm fw-bold">
-                               <i class="bi bi-filetype-csv"></i>
-                               Extraer Historial (CSV)
-                            </a>
-                            
-                            <a href="{% url 'visitors:registrar_ingreso' %}"
-                               class="btn btn-primary btn-sm fw-bold">
-                               <i class="bi bi-person-plus-fill"></i>
-                               Registrar Ingreso / Empleado
-                            </a>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width:25%;">Nombre</th>
-                                    <th style="width:10%;">Tipo</th>
-                                    <th style="width:20%;">Empresa / Área</th>
-                                    <th style="width:10%;">Hora Evento</th>
-                                    <th style="width:12%;">Token</th>
-                                    <th style="width:13%;">Estado</th>
-                                    <th style="width:10%;" class="text-center">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if not visitas_activas %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-5">
-                                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                        No hay visitantes ni permisos activos registrados.
-                                    </td>
-                                </tr>
-                                {% else %}
-                                    {% for visita in visitas_activas %}
-                                    <tr>
-                                        <td style="max-width:220px;">
-                                            {% if visita.is_employee_mock %}
-                                                <div class="d-flex align-items-center">
-                                                    {% if visita.photo %}
-                                                        
-                                                        <small class="text-danger d-block">
-                                                        </small>
-
-                                                        <a href="#"
-                                                           class="fw-bold text-decoration-none"
-                                                           data-bs-toggle="modal"
-                                                           data-bs-target="#fotoModal{{ visita.id }}">
-                                                             {{ visita.visitor.first_name }}
-                                                             {{ visita.visitor.last_name }}
-                                                        </a>
-                                                    {% else %}
-                                                        <span class="fw-bold text-truncate">
-                                                            {{ visita.visitor.first_name }}
-                                                            {{ visita.visitor.last_name }}
-                                                        </span>
-                                                    {% endif %}
-                                                </div>
-                                            {% else %}
-                                                {% if visita.photo %}
-                                                    <a href="#"
-                                                       class="text-decoration-none fw-bold text-truncate d-inline-block"
-                                                       style="max-width: 100%;"
-                                                       data-bs-toggle="modal"
-                                                       data-bs-target="#fotoModal{{ visita.id }}">
-                                                         {{ visita.visitor.first_name }}
-                                                         {{ visita.visitor.last_name }}
-                                                    </a>
-                                                {% else %}
-                                                    <span class="fw-bold text-truncate d-inline-block" style="max-width: 100%;">
-                                                        {{ whitespace_clean }}
-                                                        {{ visita.visitor.first_name }}
-                                                        {{ visita.visitor.last_name }}
-                                                    </span>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        
-                                        <td>
-                                            {% if visita.is_employee_mock %}
-                                                <span class="badge bg-info text-dark">Permiso</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary text-capitalize">
-                                                    {{ visita.visitor.get_visitor_type_display|default:visita.visitor.visitor_type }}
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        
-                                        <td>
-                                            {% if visita.is_employee_mock %}
-                                                <span class="text-muted small">Área:</span> {{ visita.area|default:"—" }}
-                                            {% else %}
-                                                {{ visita.visitor.company|default:"—" }}
-                                            {% endif %}
-                                        </td>
-                                        
-                                        <td>{{ visita.entry_time|time:"H:i" }}</td>
-                                        
-                                        <td class="text-nowrap">
-                                            {% if visita.token_qr %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
-                                                    {{ visita.token_qr|upper }}
-                                                </code>
-                                            {% elif visita.token %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
-                                                    {{ visita.token|upper }}
-                                                </code>
-                                            {% elif visita.visitor.token %}
-                                                <code class="text-danger fw-bold" style="font-size: 1.05em;">
-                                                    {{ visita.visitor.token|upper }}
-                                                </code>
-                                            {% else %}
-                                                <span class="badge bg-warning text-dark" style="font-size:10px;">
-                                                    Sin Token
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        
-                                        <td>
-                                            {% if visita.is_employee_mock %}
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-person-go-out" style="font-size: 10px;"></i> En permiso
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-circle-fill" style="font-size: 8px;"></i> En instalaciones
-                                                </span>
-                                            {% endif %}
-                                        </td>
-
-                                        <td class="text-center">
-                                            {% if visita.is_employee_mock %}
-                                                <form action="{% url 'visitors:regreso_empleado' visita.id %}" method="POST" class="d-inline">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2" onclick="return confirm('¿Confirmar re-ingreso de este empleado?');">
-                                                        <i class="bi bi-box-arrow-in-right"></i> Re-ingreso
-                                                    </button>
-                                                </form>
-                                            {% else %}
-                                                <form action="{% url 'visitors:registrar_salida' visita.id %}" method="POST" class="d-inline">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="return confirm('¿Confirmar salida de este visitante?');">
-                                                        <i class="bi bi-door-closed-fill"></i> Salida
-                                                    </button>
-                                                </form>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            {% for visita in visitas_activas %}
-                {% if not visita.is_employee_mock and visita.photo %}
-                <div class="modal fade" id="fotoModal{{ visita.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Detalles de {{ visita.visitor.first_name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-4 text-center">
-                                        <img src="{{ visita.photo.url }}" class="img-fluid rounded shadow" style="max-height:350px;">
-                                    </div>
-                                    <div class="col-md-8">
-                                        <h4 class="fw-bold text-primary mb-3">
-                                            {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
-                                        </h4>
-                                        <table class="table table-bordered">
-                                            <tr>
-                                                <th width="35%">Documento</th>
-                                                <td>
-                                                    {{ visita.visitor.document_short }}
-                                                    {{ visita.visitor.document_id }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <th>Celular</th>
-                                                <td>{{ visita.visitor.phone_number|default:"No registrado" }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Contacto Emergencia</th>
-                                                <td>
-                                                    {% if visita.visitor.emergency_contact_name %}
-                                                        <strong>{{ visita.visitor.emergency_contact_name }}</strong>
-                                                        {% if visita.visitor.emergency_contact_relationship %}
-                                                            <br>
-                                                            <small class="text-muted">
-                                                                {{ visita.visitor.emergency_contact_relationship }}
-                                                            </small>
-                                                        {% endif %}
-                                                        {% if visita.visitor.emergency_contact_phone %}
-                                                            <br>
-                                                            <small>
-                                                                <i class="bi bi-telephone-fill"></i>
-                                                                {{ visita.visitor.emergency_contact_phone }}
-                                                            </small>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        No registrado
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                            <tr><th>Tipo</th><td>{{ visita.visitor.get_visitor_type_display }}</td></tr>
-                                            <tr><th>Empresa</th><td>{{ visita.visitor.company|default:"No registra" }}</td></tr>
-                                            <tr><th>Área destino</th><td>{{ visita.area }}</td></tr>
-                                            <tr><th>Persona a visitar</th><td>{{ visita.person_to_visit }}</td></tr>
-                                            <tr><th>Motivo</th><td>{{ visita.get_reason_type_display }}</td></tr>
-                                            <tr><th>Ingreso</th><td>{{ visita.entry_time|date:"d/m/Y H:i" }}</td></tr>
-                                            <tr><th>Token</th><td><code>{{ visita.token_qr }}</code></td></tr>
-                                            <tr><th>Estado</th><td>En instalaciones</td></tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if visita.is_employee_mock and visita.photo %}
-                <div class="modal fade" id="fotoModal{{ visita.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Información del Empleado</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-4 text-center">
-                                        <img src="{{ visita.photo.url }}" class="img-fluid rounded shadow" style="max-height:300px;">
-                                    </div>
-                                    <div class="col-md-8">
-                                        <h4 class="fw-bold text-primary mb-3">
-                                            {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
-                                        </h4>
-                                        <table class="table table-bordered">
-                                            <tr>
-                                                <th width="35%">Documento</th>
-                                                <td>
-                                                    {{ visita.employee.get_document_type_display }}
-                                                    {{ visita.employee.employee_id }}
-                                                </td>
-                                            </tr>
-                                            <tr><th>Área</th><td>{{ visita.area }}</td></tr>
-                                            <tr><th>Estado</th><td>En permiso</td></tr>
-                                            <tr><th>Salida</th><td>{{ visita.entry_time|date:"d/m/Y H:i" }}</td></tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            {% endfor %}
-            </div>
-
-        <div class="col-12 col-xl-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold text-secondary">
-                        <i class="bi bi-clock-history text-warning"></i> Últimos Movimientos
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for mov in page_obj %}
-                        <li class="list-group-item px-3 py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong class="d-block">
-                                        {{ mov.visitor.first_name }} {{ mov.visitor.last_name }}
-                                    </strong>
-                                    <small class="text-muted text-capitalize">
-                                        {{ mov.visitor.get_visitor_type_display|default:mov.visitor.visitor_type }}
-                                    </small>
-                                </div>
-                                <div class="text-end">
-                                    <span class="badge {% if mov.tipo_accion == 'Ingresó' or mov.status == 'ingresado' %}bg-info text-dark{% else %}bg-secondary{% endif %} rounded-pill d-block mb-1">
-                                        {{ mov.tipo_accion|default:"Salió" }}
-                                    </span>
-                                    <small class="text-muted">
-                                        {% if mov.tipo_accion == 'Regresó' %}
-                                            Regresó:<br>
-                                            {{ mov.exit_time|date:"d/m/Y H:i" }}
-                                        {% else %}
-                                            Salió:<br>
-                                            {{ mov.exit_time|date:"d/m/Y H:i" }}
-                                        {% endif %}
-                                    </small>
-                                </div>
-                            </div>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item text-center text-muted py-4">
-                            <i class="bi bi-clock d-block mb-1"></i>
-                            Sin movimientos hoy.
-                        </li>
-                        {% endfor %}
-                    </div>
-
-                    {% if page_obj.has_other_pages %}
-                    <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light rounded-bottom">
-                        <span class="text-muted" style="font-size: 11px;">
-                            Pág. {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-                        </span>
-                        <nav>
-                            <ul class="pagination pagination-sm mb-0">
-                                {% if page_obj.has_previous %}
-                                    <li class="page-item me-1">
-                                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-bold" style="font-size: 12px;">Anterior</a>
-                                    </li>
-                                {% endif %}
-                                
-                                {% if page_obj.has_next %}
-                                    <li class="page-item">
-                                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-primary btn-sm py-0 px-2 fw-bold" style="font-size: 12px;">Siguiente <i class="bi bi-arrow-right-short"></i></a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                    </div>
-                    {% endif %}
-
-                </div>
-            </div>
-        </div>
-
+<!-- Cabecera del Panel -->
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+    <h2 class="h4 mb-0" style="color: #2c3545; font-weight: 700;">Panel Principal</h2>
+    <div class="d-flex align-items-center gap-3">
+        <span class="text-dark small fw-bold" id="reloj-tiempo-real" style="font-size: 0.95rem;">
+            {% now "j \d\e F \d\e Y, H:i:s" %}
+        </span>
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn text-white fw-bold py-1 px-3" style="background-color: #8b1e28; font-size: 0.9rem;" onclick="return confirm('¿Desea cerrar sesión?');">
+                Cerrar Sesión
+            </button>
+        </form>
     </div>
 </div>
+
+<!-- Tarjetas de Estadísticas -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card bg-instalaciones">
+            <h6>EN INSTALACIONES</h6>
+            <a href="{% url 'dashboard:detalle_en_instalaciones' %}">
+                <h2>{{ en_instalaciones_count }}</h2>
+            </a>
+            <small>visitantes activos ahora</small>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card bg-visitantes">
+            <h6>VISITANTES DEL DÍA</h6>
+            <a href="{% url 'dashboard:detalle_visitantes_dia' %}">
+                <h2>{{ visitantes_dia_count }}</h2>
+            </a>
+            <small>registros de hoy</small>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card bg-entrevistas">
+            <h6>ENTREVISTAS HOY</h6>
+            <a href="{% url 'dashboard:detalle_entrevistas' %}">
+                <h2>{{ entrevistas_count }}</h2>
+            </a>
+            <small>entrevistados registrados</small>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card bg-permisos">
+            <h6>PERMISOS ACTIVOS</h6>
+            <a href="{% url 'dashboard:detalle_permisos' %}">
+                <h2>{{ permisos_count }}</h2>
+            </a>
+            <small>empleados fuera</small>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido Principal: Tablas y Sidebar -->
+<div class="row g-4">
+    <!-- Tabla Principal (Izquierda) -->
+    <div class="col-12 col-xl-8">
+        <div class="card card-custom h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <span class="panel-title">Personal en Instalaciones y Salidas Activas</span>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="/admin/visitors/visit/" target="_blank" class="btn btn-extraer">
+                            Extraer Historial (CSV)
+                        </a>
+                        <a href="{% url 'visitors:registrar_ingreso' %}" class="btn btn-ingresar">
+                            Registrar Ingreso
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
+                        <thead>
+                            <tr>
+                                <th style="width:25%;">Nombre</th>
+                                <th style="width:12%;">Tipo</th>
+                                <th style="width:20%;">Empresa / Área</th>
+                                <th style="width:12%;">Hora Evento</th>
+                                <th style="width:12%;">Token</th>
+                                <th style="width:12%;">Estado</th>
+                                <th style="width:10%;" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if not visitas_activas %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    No hay visitantes ni permisos activos registrados.
+                                </td>
+                            </tr>
+                            {% else %}
+                                {% for visita in visitas_activas %}
+                                <tr>
+                                    <!-- Nombre con Modal -->
+                                    <td class="text-truncate" style="max-width:220px;">
+                                        {% if visita.photo %}
+                                            <a href="#" class="text-decoration-none name-text" data-bs-toggle="modal" data-bs-target="#fotoModal{{ visita.id }}">
+                                                {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="name-text">
+                                                {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Tipo -->
+                                    <td>
+                                        {% if visita.is_employee_mock %}
+                                            <span class="badge badge-tipo">Permiso</span>
+                                        {% else %}
+                                            <span class="badge badge-tipo text-capitalize">
+                                                {{ visita.visitor.get_visitor_type_display|default:visita.visitor.visitor_type }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Empresa/Área -->
+                                    <td class="text-truncate">
+                                        {% if visita.is_employee_mock %}
+                                            {{ visita.area|default:"—" }}
+                                        {% else %}
+                                            {{ visita.visitor.company|default:"—" }}
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Hora -->
+                                    <td>{{ visita.entry_time|time:"H:i" }}</td>
+                                    
+                                    <!-- Token -->
+                                    <td>
+                                        {% if visita.token_qr %}
+                                            <span class="token-text">{{ visita.token_qr|upper }}</span>
+                                        {% elif visita.token %}
+                                            <span class="token-text">{{ visita.token|upper }}</span>
+                                        {% elif visita.visitor.token %}
+                                            <span class="token-text">{{ visita.visitor.token|upper }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark" style="font-size:10px;">Sin Token</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Estado -->
+                                    <td>
+                                        {% if visita.is_employee_mock %}
+                                            <span class="badge badge-estado-permiso">En permiso</span>
+                                        {% else %}
+                                            <span class="badge badge-estado-activo">En instalaciones</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Acciones -->
+                                    <td class="text-center">
+                                        {% if visita.is_employee_mock %}
+                                            <form action="{% url 'visitors:regreso_empleado' visita.id %}" method="POST" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-reingreso-verde rounded-pill" onclick="return confirm('¿Confirmar re-ingreso de este empleado?');">
+                                                    Re-ingreso
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form action="{% url 'visitors:registrar_salida' visita.id %}" method="POST" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-salida-rojo rounded-pill" onclick="return confirm('¿Confirmar salida de este visitante?');">
+                                                    Salida
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral (Derecha) -->
+    <div class="col-12 col-xl-4">
+        <div class="card card-custom h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <span class="panel-title mb-4 d-block">Últimos Movimientos</span>
+                
+                <div class="list-group list-group-flush flex-grow-1">
+                    {% for mov in page_obj %}
+                    <div class="movimiento-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold" style="font-size: 0.95rem; color: #2c3545;">
+                                {{ mov.visitor.first_name }} {{ mov.visitor.last_name }}
+                            </div>
+                            <small class="text-muted text-capitalize">
+                                {{ mov.visitor.get_visitor_type_display|default:mov.visitor.visitor_type }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {% if mov.tipo_accion == 'Ingresó' or mov.status == 'ingresado' or mov.tipo_accion == 'Regresó' %}badge-mov-regreso{% else %}badge-mov-salida{% endif %} rounded-pill mb-1">
+                                {{ mov.tipo_accion|default:"Salió" }}
+                            </span><br>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                {{ mov.tipo_accion|default:"Salió" }}:<br>{{ mov.exit_time|date:"d/m/Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">
+                        Sin movimientos hoy.
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación Panel Lateral -->
+                {% if page_obj.has_other_pages %}
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                    <span class="text-muted" style="font-size: 12px;">
+                        Pág. {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item me-1">
+                                    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 12px;">Anterior</a>
+                                </li>
+                            {% endif %}
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-primary btn-sm py-1 px-2" style="font-size: 12px; background-color: #10437a; border: none;">Siguiente</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- INICIO ZONA DE MODALES (Mantenido intacto de tu lógica original) -->
+{% for visita in visitas_activas %}
+    {% if not visita.is_employee_mock and visita.photo %}
+    <div class="modal fade" id="fotoModal{{ visita.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles de {{ visita.visitor.first_name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <img src="{{ visita.photo.url }}" class="img-fluid rounded shadow" style="max-height:350px;">
+                        </div>
+                        <div class="col-md-8">
+                            <h4 class="fw-bold mb-3" style="color: #10437a;">
+                                {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                            </h4>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="35%">Documento</th>
+                                    <td>{{ visita.visitor.document_short }} {{ visita.visitor.document_id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Celular</th>
+                                    <td>{{ visita.visitor.phone_number|default:"No registrado" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <td>{{ visita.visitor.get_visitor_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Empresa</th>
+                                    <td>{{ visita.visitor.company|default:"No registra" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Área destino</th>
+                                    <td>{{ visita.area }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Motivo</th>
+                                    <td>{{ visita.get_reason_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Ingreso</th>
+                                    <td>{{ visita.entry_time|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Token</th>
+                                    <td><code class="text-danger fw-bold">{{ visita.token_qr }}</code></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if visita.is_employee_mock and visita.photo %}
+    <div class="modal fade" id="fotoModal{{ visita.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Información del Empleado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <img src="{{ visita.photo.url }}" class="img-fluid rounded shadow" style="max-height:300px;">
+                        </div>
+                        <div class="col-md-8">
+                            <h4 class="fw-bold mb-3" style="color: #10437a;">
+                                {{ visita.visitor.first_name }} {{ visita.visitor.last_name }}
+                            </h4>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="35%">Documento</th>
+                                    <td>{{ visita.employee.get_document_type_display }} {{ visita.employee.employee_id }}</td>
+                                </tr>
+                                <tr><th>Área</th><td>{{ visita.area }}</td></tr>
+                                <tr><th>Estado</th><td>En permiso</td></tr>
+                                <tr><th>Salida</th><td>{{ visita.entry_time|date:"d/m/Y H:i" }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+<!-- FIN ZONA DE MODALES -->
+
 {% endblock %}
 
 {% block extra_js %}
@@ -477,8 +414,8 @@
             const fechaStr = ahora.toLocaleDateString('es-ES', opcionesFecha);
             const horaStr = ahora.toLocaleTimeString('es-ES');
             
-            // Reconstruimos el contenido manteniendo el ícono
-            elementoReloj.innerHTML = `<i class="bi bi-calendar3"></i> ${fechaStr}, ${horaStr}`;
+            // Reconstruimos el contenido sin ícono extra para mayor limpieza
+            elementoReloj.innerHTML = `${fechaStr}, ${horaStr}`;
         }
     }
 

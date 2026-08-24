@@ -1,0 +1,72 @@
+{% load static %}
+<style>
+    .navbar-boccherini {
+        background-color: #ffffff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 12px 20px; 
+    }
+    
+    .navbar-brand-container {
+        display: flex;
+        align-items: center; 
+        height: 100%;
+    }
+    
+    .navbar-brand {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .navbar-brand img {
+        height: 48px; 
+        object-fit: contain;
+    }
+    
+    .nav-title-divider {
+        width: 2px;
+        height: 42px;
+        background-color: #e0e0e0;
+        margin: 0 20px;
+    }
+    
+    .nav-titles {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .nav-titles h1 {
+        font-size: 1.35rem; 
+        font-weight: 700;
+        color: var(--boccherini-blue, #10437a);
+        margin: 0 0 2px 0; 
+        line-height: 1.1;
+    }
+    
+    .nav-titles span {
+        font-size: 0.85rem;
+        color: #6c757d;
+        line-height: 1.1;
+    }
+</style>
+
+<nav class="navbar navbar-boccherini">
+    <!-- El "justify-content-center" es la magia que empuja todo a la mitad -->
+    <div class="container-fluid d-flex justify-content-center align-items-center">
+        
+        <!-- Bloque central de Logo y Títulos -->
+        <div class="navbar-brand-container text-center">
+            <a class="navbar-brand" href="{% url 'dashboard:dashboard' %}">
+                <img src="https://boccherinicol.vtexassets.com/assets/vtex.file-manager-graphql/images/117104a7-a9bf-4a1c-ba2b-c33ac4db466e___dc9a4962633b58475c7995a25825a981.jpg" alt="Boccherini Logo">
+            </a>
+            <div class="nav-title-divider d-none d-md-block"></div>
+            <div class="nav-titles d-none d-md-flex align-items-start text-start">
+                <h1>Sistema de Control de Visitantes</h1>
+                <span>Registro y seguimiento de ingresos, salidas y permisos</span>
+            </div>
+        </div>
+        
+    </div>
+</nav>

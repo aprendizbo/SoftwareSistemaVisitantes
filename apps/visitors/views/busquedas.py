@@ -3,7 +3,11 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 
 from apps.visitors.models import Visitor, Visit
-from apps.employees.models import Employee, EmployeePermission
+from apps.employees.models import (
+    Employee,
+    EmployeePermission,
+    EarlyDeparture,
+)
 
 
 @login_required
@@ -124,9 +128,35 @@ def buscar_empleado(request):
             for p in permisos[:5]
         ]
 
-        ultima_foto = permisos.filter(
+        # =========================================================
+        # BUSCAR ÚLTIMA FOTO DEL EMPLEADO
+        # =========================================================
+        ultima_foto_permiso = permisos.filter(
             photo__isnull=False
+        ).exclude(
+            photo=''
         ).first()
+        
+        ultima_foto_salida = EarlyDeparture.objects.filter(
+            employee=empleado,
+            photo__isnull=False
+        ).exclude(
+            photo=''
+        ).order_by(
+            '-departure_date',
+            '-departure_time'
+        ).first()
+        
+        # Por defecto, ninguna foto
+        foto_url = ''
+        
+        # Si existe foto de salida temprana, usarla
+        if ultima_foto_salida and ultima_foto_salida.photo:
+            foto_url = ultima_foto_salida.photo.url
+        # Si existe foto de permiso y no hay foto de salida,
+        # usar la del permiso
+        elif ultima_foto_permiso and ultima_foto_permiso.photo:
+            foto_url = ultima_foto_permiso.photo.url
 
         return JsonResponse({
             'encontrado': True,
@@ -180,12 +210,7 @@ def buscar_empleado(request):
 
             'historial': historial,
 
-            'foto': (
-                ultima_foto.photo.url
-                if ultima_foto
-                and ultima_foto.photo
-                else ''
-            )
+            'foto': foto_url,
         })
 
     except Employee.DoesNotExist:

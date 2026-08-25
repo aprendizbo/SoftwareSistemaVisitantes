@@ -100,7 +100,8 @@
             </div>
             
             <div class="card-body p-4 p-md-5">
-                <form method="POST" action="{% url 'visitors:registrar_ingreso' %}" enctype="multipart/form-data" id="form-registro">
+                <!-- FORMULARIO: Nota los data-urls que se usan para cambiar la acción mediante JS -->
+                <form method="POST" action="{% url 'visitors:registrar_ingreso' %}" data-url-ingreso="{% url 'visitors:registrar_ingreso' %}" data-url-salida-temprana="{% url 'visitors:registrar_salida_temprana' %}" enctype="multipart/form-data" id="form-registro">
                     {% csrf_token %}
 
                     <div class="row">
@@ -224,6 +225,53 @@
                                 <div class="mb-3">
                                     <label class="form-label text-primary fw-semibold"><i class="bi bi-envelope-fill me-1"></i>Correo a Informar (Boccherini)</label>
                                     {{ permission_form.correo_notificar }}
+                                </div>
+                            </div>
+
+                            <!-- Bloque para Empleados (Salida Temprana) -->
+                            <div id="seccion-salida-temprana" style="display: none;">
+
+                                <div class="mb-3">
+                                    <label class="form-label">Detalle / Justificación</label>
+                                    {{ early_departure_form.detail }}
+
+                                    {% if early_departure_form.detail.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in early_departure_form.detail.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Responsable</label>
+                                    {{ early_departure_form.autorizado_por }}
+
+                                    {% if early_departure_form.autorizado_por.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in early_departure_form.autorizado_por.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label text-primary fw-semibold">
+                                        <i class="bi bi-envelope-fill me-1"></i>
+                                        Correo a Notificar (Boccherini)
+                                    </label>
+
+                                    {{ early_departure_form.correo_notificar }}
+
+                                    {% if early_departure_form.correo_notificar.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in early_departure_form.correo_notificar.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -386,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 400);
     }
 
-    // Eventos y Lógica de Alternancia entre Visitante / Empleado
+    // Eventos y Lógica de Alternancia entre Visitante / Empleado / Salida Temprana
     const documentoInput = document.getElementById('id_document_id');
     if(documentoInput){
         documentoInput.addEventListener('blur', buscarPersona);
@@ -395,15 +443,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const tipoIngreso = document.getElementById('id_visitor_type');
     const seccionVisitante = document.getElementById('seccion-visitante');
     const seccionEmpleado = document.getElementById('seccion-empleado');
+    const seccionSalidaTemprana = document.getElementById('seccion-salida-temprana');
 
     function actualizarFormularioIngreso() {
         if (!tipoIngreso) return;
+        
+        const valor = tipoIngreso.value;
+        const formRegistro = document.getElementById('form-registro');
+        
+        // Determinar a qué URL enviar el formulario (Ingreso vs Salida Temprana)
+        if (valor === 'salida_temprana') {
+            formRegistro.action = formRegistro.getAttribute('data-url-salida-temprana');
+        } else {
+            formRegistro.action = formRegistro.getAttribute('data-url-ingreso');
+        }
     
-        const esEmpleado = tipoIngreso.value === 'permiso_empleado';
-    
-        if (esEmpleado) {
+        if (valor === 'permiso_empleado') {
             seccionVisitante.style.display = 'none';
             seccionEmpleado.style.display = 'block';
+            if(seccionSalidaTemprana) seccionSalidaTemprana.style.display = 'none';
     
             seccionVisitante.querySelectorAll('input, select, textarea').forEach(campo => {
                 campo.disabled = true;
@@ -412,10 +470,55 @@ document.addEventListener('DOMContentLoaded', function () {
             seccionEmpleado.querySelectorAll('input, select, textarea').forEach(campo => {
                 campo.disabled = false;
             });
+
+            if(seccionSalidaTemprana) {
+                seccionSalidaTemprana.querySelectorAll('input, select, textarea').forEach(campo => {
+                    campo.disabled = true;
+                });
+            }
+
+            // Habilitar documento siempre
+            if(document.getElementById('id_document_id')) document.getElementById('id_document_id').disabled = false;
+            if(document.getElementById('id_document_type')) document.getElementById('id_document_type').disabled = false;
     
+        } else if (valor === 'salida_temprana') {
+            seccionVisitante.style.display = 'none';
+            seccionEmpleado.style.display = 'none';
+        
+            if (seccionSalidaTemprana) {
+                seccionSalidaTemprana.style.display = 'block';
+        
+                // Deshabilitar campos de visitante y permiso normal
+                seccionVisitante.querySelectorAll('input, select, textarea').forEach(campo => {
+                    campo.disabled = true;
+                });
+        
+                seccionEmpleado.querySelectorAll('input, select, textarea').forEach(campo => {
+                    campo.disabled = true;
+                });
+        
+                // Habilitar TODOS los campos de salida temprana
+                seccionSalidaTemprana.querySelectorAll('input, select, textarea').forEach(campo => {
+                    campo.disabled = false;
+                    campo.removeAttribute('disabled');
+                });
+            }
+        
+            // Documento necesario para buscar al empleado
+            if (document.getElementById('id_document_id')) {
+                document.getElementById('id_document_id').disabled = false;
+                document.getElementById('id_document_id').removeAttribute('disabled');
+            }
+        
+            if (document.getElementById('id_document_type')) {
+                document.getElementById('id_document_type').disabled = false;
+                document.getElementById('id_document_type').removeAttribute('disabled');
+            }
+
         } else {
             seccionVisitante.style.display = 'block';
             seccionEmpleado.style.display = 'none';
+            if(seccionSalidaTemprana) seccionSalidaTemprana.style.display = 'none';
     
             seccionVisitante.querySelectorAll('input, select, textarea').forEach(campo => {
                 campo.disabled = false;
@@ -424,6 +527,12 @@ document.addEventListener('DOMContentLoaded', function () {
             seccionEmpleado.querySelectorAll('input, select, textarea').forEach(campo => {
                 campo.disabled = true;
             });
+
+            if(seccionSalidaTemprana) {
+                seccionSalidaTemprana.querySelectorAll('input, select, textarea').forEach(campo => {
+                    campo.disabled = true;
+                });
+            }
         }
     }
 
@@ -440,7 +549,7 @@ function buscarPersona(){
 
     if(!documento){ return; }
 
-    let url = (tipoIngreso === 'permiso_empleado') 
+    let url = (tipoIngreso === 'permiso_empleado' || tipoIngreso === 'salida_temprana') 
         ? `${URL_BUSCAR_EMPLEADO}?document_id=${documento}`
         : `${URL_BUSCAR_VISITANTE}?document_id=${documento}`;
 
@@ -451,7 +560,7 @@ function buscarPersona(){
         const info = document.getElementById('info-encontrado');
         info.style.display = 'block';
 
-        if(tipoIngreso === 'permiso_empleado'){
+        if(tipoIngreso === 'permiso_empleado' || tipoIngreso === 'salida_temprana'){
             document.getElementById('id_first_name').value = data.first_name || '';
             document.getElementById('id_last_name').value = data.last_name || '';
             

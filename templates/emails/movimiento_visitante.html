@@ -43,7 +43,17 @@
                             <!-- TÍTULO DINÁMICO -->
                             <div style="margin-bottom: 25px; text-align: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px;">
 
-                                {% if es_permiso_empleado %}
+                                {% if es_salida_temprana %}
+
+                                    <h2 style="margin: 0; color: #dc2626; font-size: 22px;">
+                                        🚨 Salida Temprana de Empleado
+                                    </h2>
+
+                                    <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 15px;">
+                                        Notificación de salida anticipada de empleado
+                                    </p>
+
+                                {% elif es_permiso_empleado %}
 
                                     {% if movimiento == 'entrada' %}
 
@@ -136,7 +146,73 @@
                                     </td>
                                 </tr>
 
-                                {% if es_permiso_empleado %}
+                                {% if es_salida_temprana %}
+
+                                    <!-- DATOS DE LA SALIDA TEMPRANA -->
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Documento:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ empleado.get_document_type_display }} {{ documento }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Área / Departamento:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ area }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Autorizado por:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ salida_temprana.autorizado_por }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Fecha de salida:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ fecha_salida|date:"d/m/Y" }}
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Hora de salida:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ hora_salida|time:"H:i" }}
+                                        </td>
+                                    </tr>
+
+                                    {% if detalle_salida %}
+                                    <tr>
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: bold; color: #4b5563;">
+                                            Detalle / Justificación:
+                                        </td>
+
+                                        <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                                            {{ detalle_salida }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+
+                                {% elif es_permiso_empleado %}
 
                                     <!-- DATOS DEL EMPLEADO -->
 

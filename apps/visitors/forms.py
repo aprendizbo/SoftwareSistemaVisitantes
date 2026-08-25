@@ -1,6 +1,7 @@
 from django import forms
+from django.contrib.auth.models import User
 from .models import Visitor, Visit
-from apps.employees.models import EmployeePermission
+from apps.employees.models import EmployeePermission, EarlyDeparture
 
 
 class VisitorForm(forms.ModelForm):
@@ -13,6 +14,7 @@ class VisitorForm(forms.ModelForm):
             ('visitante_externo', 'Visitante Externo'),
             ('contratista', 'Contratista'),
             ('permiso_empleado', 'Permiso de Empleado'),
+            ('salida_temprana', 'Salida Temprana'),
         ],
         widget=forms.Select(
             attrs={
@@ -273,6 +275,73 @@ class EmployeePermissionForm(forms.ModelForm):
             if not correo.endswith('@boccherini.com.co'):
                 raise forms.ValidationError(
                     'Error: Solo se permiten correos corporativos de Boccherini '
+                    '(@boccherini.com.co)'
+                )
+
+        return correo
+
+
+class EarlyDepartureForm(forms.ModelForm):
+
+    detail = forms.CharField(
+        label='Detalle / Justificación',
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': (
+                    'Indique el motivo o detalle '
+                    'de la salida temprana'
+                )
+            }
+        )
+    )
+
+    autorizado_por = forms.CharField(
+        label='Responsable',
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del responsable'
+            }
+        )
+    )
+
+    correo_notificar = forms.EmailField(
+        label='Correo a Notificar',
+        required=True,
+        widget=forms.EmailInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': 'ejemplo@boccherini.com.co'
+            }
+        )
+    )
+
+    class Meta:
+        model = EarlyDeparture
+        fields = [
+            'detail',
+            'autorizado_por',
+            'correo_notificar',
+        ]
+
+    def clean_correo_notificar(self):
+        correo = self.cleaned_data.get(
+            'correo_notificar'
+        )
+
+        if correo:
+            correo = correo.strip().lower()
+
+            if not correo.endswith(
+                '@boccherini.com.co'
+            ):
+                raise forms.ValidationError(
+                    'Error: Solo se permiten correos '
+                    'corporativos de Boccherini '
                     '(@boccherini.com.co)'
                 )
 

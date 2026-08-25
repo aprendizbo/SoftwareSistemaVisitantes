@@ -13,10 +13,25 @@ urlpatterns = [
     path('checkout/confirmar/<int:visit_id>/', views.confirmar_checkout, name='confirmar_checkout'),
 
     # Salida manual de visitantes desde el Dashboard
-    path('salida/<int:visita_id>/', views.registrar_salida, name='registrar_salida'),
+    path(
+        'salida/<int:visita_id>/',
+        views.registrar_salida,
+        name='registrar_salida'
+    ),
+
+    # Salida temprana de empleados
+    path(
+        'salida-temprana/',
+        views.registrar_salida_temprana,
+        name='registrar_salida_temprana'
+    ),
 
     # Re-ingreso manual de Empleados desde el Dashboard (CORREGIDO: name ahora es regreso_empleado)
-    path('regreso-empleado/<int:permiso_id>/', views.registrar_regreso_empleado, name='regreso_empleado'),
+    path(
+        'regreso-empleado/<int:permiso_id>/',
+        views.registrar_regreso_empleado,
+        name='regreso_empleado'
+    ),
 
     # Búsquedas asíncronas para autocompletado en el formulario
     path(

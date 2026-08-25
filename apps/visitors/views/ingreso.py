@@ -13,9 +13,13 @@ from apps.visitors.forms import (
     VisitorForm,
     VisitForm,
     EmployeePermissionForm,
+    EarlyDepartureForm,
 )
 from apps.visitors.models import Visitor, Visit
-from apps.employees.models import Employee, EmployeePermission
+from apps.employees.models import (
+    Employee,
+    EmployeePermission,
+)
 from .email import enviar_alerta_email
 
 
@@ -397,7 +401,7 @@ def registrar_ingreso(request):
             )
 
         # =========================================================
-        # FLUJO B: VISITANTES EXTERNOS
+        # FLUJO C: VISITANTES EXTERNOS
         # =========================================================
         elif (
             not es_permiso_empleado
@@ -650,7 +654,7 @@ def registrar_ingreso(request):
         )
 
     # =========================================================
-    # FLUJO C: GET
+    # FLUJO D: GET
     # =========================================================
 
     return render(
@@ -660,5 +664,6 @@ def registrar_ingreso(request):
             'visitor_form': VisitorForm(),
             'visit_form': VisitForm(),
             'permission_form': EmployeePermissionForm(),
+            'early_departure_form': EarlyDepartureForm(),
         }
     )

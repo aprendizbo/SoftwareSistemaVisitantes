@@ -15,3 +15,7 @@ from .busquedas import (
 from .permisos import (
     registrar_regreso_empleado,
 )
+
+from .salidas_tempranas import (
+    registrar_salida_temprana,
+)

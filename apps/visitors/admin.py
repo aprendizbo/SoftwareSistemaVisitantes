@@ -1,50 +1,60 @@
 import csv
 from datetime import timedelta
-from io import BytesIO
+import pytz
 
 from django.contrib import admin
 from django.http import HttpResponse
 from django.utils import timezone
+
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.styles import Font
-import pytz
 
-from .models import Visit, Visitor
+from .models import Visitor, Visit
 
 
-# ==========================================
-# FUNCIÓN DE CONVERSIÓN FORZADA A BOGOTÁ
-# ==========================================
+# =========================================================
+# CONVERSIÓN DE HORA A BOGOTÁ
+# =========================================================
 def get_bogota_time(dt):
     if not dt:
         return None
-    # Si el objeto es "naive" (sin zona horaria), lo marcamos como UTC primero
+
     if timezone.is_naive(dt):
-        dt = timezone.make_aware(dt, timezone.utc)
-    # Convertimos explícitamente a la hora real de Colombia
-    return dt.astimezone(pytz.timezone("America/Bogota"))
+        dt = timezone.make_aware(
+            dt,
+            timezone.utc
+        )
+
+    return dt.astimezone(
+        pytz.timezone("America/Bogota")
+    )
 
 
-# ==========================================
-# ACCIONES: EXTRAER HISTORIAL DE VISITANTES
-# ==========================================
+# =========================================================
+# CSV - HISTORIAL DE VISITAS
+# =========================================================
+@admin.action(
+    description="Extraer Historial Seleccionado (Archivo CSV)"
+)
+def extraer_historial_csv(
+    modeladmin,
+    request,
+    queryset
+):
+    response = HttpResponse(
+        content_type="text/csv; charset=utf-8-sig"
+    )
 
-@admin.action(description="Extraer Historial Seleccionado (Archivo CSV)")
-def extraer_historial_csv(modeladmin, request, queryset):
-    """Exportación limpia a CSV.
-
-    El delimitador ';' evita fallas con Excel en español y separa perfectamente
-    Contratistas, Proveedores, Entrevistados y Externos.
-    """
-    response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
     response["Content-Disposition"] = (
         'attachment; filename="historial_boccherini.csv"'
     )
 
-    writer = csv.writer(response, delimiter=";")
+    writer = csv.writer(
+        response,
+        delimiter=";"
+    )
 
-    # Encabezados corporativos del archivo de auditoría con las nuevas columnas
     writer.writerow([
         "ID REGISTRO",
         "NOMBRES",
@@ -54,73 +64,147 @@ def extraer_historial_csv(modeladmin, request, queryset):
         "PERFIL VISITANTE",
         "EMPRESA CORPORATIVA",
         "PERSONA A VISITAR",
-        "CELULAR",
-        "CONTACTO EMERGENCIA",
         "FECHA HORA INGRESO",
         "FECHA HORA SALIDA",
         "ESTADO ACTUAL",
     ])
 
-    # Recorrido inteligente optimizando la consulta a base de datos con select_related
     for visita in queryset.select_related("visitor"):
-        # Aplicamos la conversión forzada a las horas antes de escribir en el CSV
-        entrada_local = get_bogota_time(visita.entry_time)
-        salida_local = get_bogota_time(getattr(visita, "exit_time", None))
+
+        entrada_local = get_bogota_time(
+            visita.entry_time
+        )
+
+        salida_local = get_bogota_time(
+            getattr(
+                visita,
+                "exit_time",
+                None
+            )
+        )
+
+        visitante = visita.visitor
+
+        tipo_doc = {
+            "cedula": "CC",
+            "cedula_ciudadania": "CC",
+            "ce": "CE",
+            "cedula_extranjeria": "CE",
+            "pasaporte": "PAS",
+        }.get(
+            str(
+                getattr(
+                    visitante,
+                    "document_type",
+                    ""
+                )
+            ).lower(),
+            ""
+        )
 
         writer.writerow([
             visita.id,
-            visita.visitor.first_name if visita.visitor else "",
-            visita.visitor.last_name if visita.visitor else "",
-            # Mapeo del tipo de documento (convertido a minúsculas para mayor seguridad)
-            {
-                "cedula": "CC",
-                "cedula_ciudadania": "CC",
-                "ce": "CE",
-                "cedula_extranjeria": "CE",
-                "pasaporte": "PAS",
-            }.get(str(getattr(visita.visitor, "document_type", "")).lower(), ""),
-            getattr(visita.visitor, "document_id", "N/A"),
-            f"{visita.visitor.visitor_type}" if visita.visitor else "",
-            getattr(visita.visitor, "company", "Particular"),
-            (
-                visita.person_to_visit
-                if hasattr(visita, "person_to_visit")
-                else "No Asignado"
+
+            getattr(
+                visitante,
+                "first_name",
+                ""
             ),
-            getattr(visita.visitor, "phone_number", ""),
-            getattr(visita.visitor, "emergency_contact", ""),
-            entrada_local.strftime("%Y-%m-%d %H:%M") if entrada_local else "",
+
+            getattr(
+                visitante,
+                "last_name",
+                ""
+            ),
+
+            tipo_doc,
+
+            getattr(
+                visitante,
+                "document_id",
+                ""
+            ),
+
             (
-                salida_local.strftime("%Y-%m-%d %H:%M")
+                visitante.get_visitor_type_display()
+                if visitante
+                else ""
+            ),
+
+            getattr(
+                visitante,
+                "company",
+                "Particular"
+            ),
+
+            getattr(
+                visita,
+                "person_to_visit",
+                "No Asignado"
+            ),
+
+            (
+                entrada_local.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
+                if entrada_local
+                else ""
+            ),
+
+            (
+                salida_local.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
                 if salida_local
                 else "En Instalaciones"
             ),
+
             (
                 visita.get_status_display()
-                if hasattr(visita, "get_status_display")
-                else getattr(visita, "status", "")
+                if hasattr(
+                    visita,
+                    "get_status_display"
+                )
+                else getattr(
+                    visita,
+                    "status",
+                    ""
+                )
             ),
         ])
 
     return response
 
 
-@admin.action(description="Extraer Historial Seleccionado (Excel con Fotos)")
-def extraer_historial_excel(modeladmin, request, queryset):
+# =========================================================
+# EXCEL - VISITANTES SELECCIONADOS
+# =========================================================
+@admin.action(
+    description="Extraer Historial Seleccionado (Excel con Fotos)"
+)
+def extraer_visitantes_excel(
+    modeladmin,
+    request,
+    queryset
+):
+
     response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        content_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
     )
+
     response["Content-Disposition"] = (
-        'attachment; filename="historial_boccherini.xlsx"'
+        'attachment; filename="historial_visitantes_boccherini.xlsx"'
     )
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Historial"
 
-    # Se agregaron 'CELULAR' y 'CONTACTO EMERGENCIA' manteniendo la 'FOTO' al final
     encabezados = [
-        "ID",
+        "ID VISITA",
         "NOMBRES",
         "APELLIDOS",
         "TIPO DOC",
@@ -137,16 +221,60 @@ def extraer_historial_excel(modeladmin, request, queryset):
         "FOTO",
     ]
 
-    for col_num, encabezado in enumerate(encabezados, 1):
-        celda = ws.cell(row=1, column=col_num)
+    for col_num, encabezado in enumerate(
+        encabezados,
+        1
+    ):
+        celda = ws.cell(
+            row=1,
+            column=col_num
+        )
+
         celda.value = encabezado
-        celda.font = Font(bold=True)
+        celda.font = Font(
+            bold=True
+        )
 
     fila = 2
 
-    for visita in queryset.select_related("visitor"):
-        entrada_local = get_bogota_time(visita.entry_time)
-        salida_local = get_bogota_time(getattr(visita, "exit_time", None))
+    # IMPORTANTE:
+    # Desde Visitor seleccionamos los visitantes,
+    # pero exportamos TODAS sus visitas históricas.
+    # En el caso de VisitAdmin, el queryset ya son Visitas.
+    # Manejamos ambos casos de forma dinámica:
+    
+    if queryset.model == Visitor:
+        visitas = (
+            Visit.objects
+            .filter(
+                visitor__in=queryset
+            )
+            .select_related("visitor")
+            .order_by("-entry_time")
+        )
+    else:
+        # Asume queryset.model == Visit
+        visitas = (
+            queryset
+            .select_related("visitor")
+            .order_by("-entry_time")
+        )
+
+    for visita in visitas:
+
+        visitante = visita.visitor
+
+        entrada_local = get_bogota_time(
+            visita.entry_time
+        )
+
+        salida_local = get_bogota_time(
+            getattr(
+                visita,
+                "exit_time",
+                None
+            )
+        )
 
         tipo_doc = {
             "cedula": "CC",
@@ -154,92 +282,249 @@ def extraer_historial_excel(modeladmin, request, queryset):
             "ce": "CE",
             "cedula_extranjeria": "CE",
             "pasaporte": "PAS",
-        }.get(str(getattr(visita.visitor, "document_type", "")).lower(), "")
+        }.get(
+            str(
+                getattr(
+                    visitante,
+                    "document_type",
+                    ""
+                )
+            ).lower(),
+            ""
+        )
 
-        empresa = getattr(visita.visitor, "company", "Particular")
+        empresa = getattr(
+            visitante,
+            "company",
+            "Particular"
+        )
+
         if (
-            visita.visitor
-            and getattr(visita.visitor, "visitor_type", "") == "entrevistado"
+            visitante
+            and getattr(
+                visitante,
+                "visitor_type",
+                ""
+            ) == "entrevistado"
         ):
             empresa = "NA"
 
-        # Integración de reason_detail junto con celular y contacto de emergencia
         datos = [
             visita.id,
-            visita.visitor.first_name if visita.visitor else "",
-            visita.visitor.last_name if visita.visitor else "",
-            tipo_doc,
-            getattr(visita.visitor, "document_id", "N/A"),
-            f"{visita.visitor.visitor_type}" if visita.visitor else "",
-            empresa,
-            (
-                visita.person_to_visit
-                if hasattr(visita, "person_to_visit")
-                else "No Asignado"
+
+            getattr(
+                visitante,
+                "first_name",
+                ""
             ),
+
+            getattr(
+                visitante,
+                "last_name",
+                ""
+            ),
+
+            tipo_doc,
+
+            getattr(
+                visitante,
+                "document_id",
+                ""
+            ),
+
             (
-                getattr(visita, "reason_detail", "")
-                if getattr(visita, "reason_detail", "")
+                visitante.get_visitor_type_display()
+                if hasattr(visitante, "get_visitor_type_display")
+                else getattr(visitante, "visitor_type", "")
+            ),
+
+            empresa,
+
+            getattr(
+                visita,
+                "person_to_visit",
+                ""
+            ),
+
+            getattr(
+                visita,
+                "reason_detail",
+                ""
+            ),
+
+            getattr(
+                visitante,
+                "phone_number",
+                ""
+            ),
+
+            getattr(
+                visitante,
+                "emergency_contact",
+                ""
+            ),
+
+            (
+                entrada_local.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
+                if entrada_local
                 else ""
             ),
-            getattr(visita.visitor, "phone_number", ""),
-            getattr(visita.visitor, "emergency_contact", ""),
-            entrada_local.strftime("%Y-%m-%d %H:%M") if entrada_local else "",
+
             (
-                salida_local.strftime("%Y-%m-%d %H:%M")
+                salida_local.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
                 if salida_local
                 else "En Instalaciones"
             ),
+
             (
                 visita.get_status_display()
-                if hasattr(visita, "get_status_display")
-                else getattr(visita, "status", "")
+                if hasattr(
+                    visita,
+                    "get_status_display"
+                )
+                else getattr(
+                    visita,
+                    "status",
+                    ""
+                )
             ),
         ]
 
-        for col_num, valor in enumerate(datos, 1):
-            ws.cell(row=fila, column=col_num, value=valor)
+        for col_num, valor in enumerate(
+            datos,
+            1
+        ):
+            ws.cell(
+                row=fila,
+                column=col_num,
+                value=valor
+            )
 
-        # Debido a las 2 nuevas columnas, la foto ahora se inyecta en la columna O (posición 15)
-        if hasattr(visita, "photo") and visita.photo:
+        # =====================================================
+        # FOTO DE ESA VISITA
+        # =====================================================
+
+        if getattr(
+            visita,
+            "photo",
+            None
+        ):
             try:
-                img = ExcelImage(visita.photo.path)
+                img = ExcelImage(
+                    visita.photo.path
+                )
+
                 img.width = 80
                 img.height = 80
-                ws.add_image(img, f"O{fila}")
-                ws.row_dimensions[fila].height = 65
+
+                ws.add_image(
+                    img,
+                    f"O{fila}"
+                )
+
+                ws.row_dimensions[
+                    fila
+                ].height = 65
+
             except Exception:
                 pass
 
         fila += 1
 
-    # Ajuste de las dimensiones con las nuevas columnas incluidas (J y K)
-    ws.column_dimensions["A"].width = 10
-    ws.column_dimensions["B"].width = 20
-    ws.column_dimensions["C"].width = 20
-    ws.column_dimensions["D"].width = 12
-    ws.column_dimensions["E"].width = 18
-    ws.column_dimensions["F"].width = 20
-    ws.column_dimensions["G"].width = 25
-    ws.column_dimensions["H"].width = 25
-    ws.column_dimensions["I"].width = 45  # DETALLE ADICIONAL
-    ws.column_dimensions["J"].width = 18  # CELULAR
-    ws.column_dimensions["K"].width = 25  # CONTACTO EMERGENCIA
-    ws.column_dimensions["L"].width = 20  # INGRESO
-    ws.column_dimensions["M"].width = 20  # SALIDA
-    ws.column_dimensions["N"].width = 18  # ESTADO
-    ws.column_dimensions["O"].width = 18  # FOTO
+    # =========================================================
+    # ANCHOS
+    # =========================================================
+
+    anchos = {
+        "A": 12,
+        "B": 20,
+        "C": 20,
+        "D": 12,
+        "E": 18,
+        "F": 20,
+        "G": 25,
+        "H": 25,
+        "I": 45,
+        "J": 18,
+        "K": 25,
+        "L": 20,
+        "M": 20,
+        "N": 18,
+        "O": 18,
+    }
+
+    for columna, ancho in anchos.items():
+        ws.column_dimensions[
+            columna
+        ].width = ancho
 
     wb.save(response)
+
     return response
 
 
-# ==========================================
-# REGISTROS DEL ADMINISTRADOR (DJANGO ADMIN)
-# ==========================================
+# =========================================================
+# FILTRO POR PERIODO
+# =========================================================
+class PeriodoFilter(
+    admin.SimpleListFilter
+):
 
+    title = "Periodo"
+    parameter_name = "periodo"
+
+    def lookups(
+        self,
+        request,
+        model_admin
+    ):
+        return (
+            (
+                "semana",
+                "Última semana"
+            ),
+            (
+                "mes",
+                "Último mes"
+            ),
+        )
+
+    def queryset(
+        self,
+        request,
+        queryset
+    ):
+        hoy = timezone.now()
+
+        if self.value() == "semana":
+            return queryset.filter(
+                entry_time__gte=(
+                    hoy - timedelta(days=7)
+                )
+            )
+
+        if self.value() == "mes":
+            return queryset.filter(
+                entry_time__gte=(
+                    hoy - timedelta(days=30)
+                )
+            )
+
+        return queryset
+
+
+# =========================================================
+# ADMIN VISITANTES
+# =========================================================
 @admin.register(Visitor)
-class VisitorAdmin(admin.ModelAdmin):
+class VisitorAdmin(
+    admin.ModelAdmin
+):
+
     list_display = (
         "first_name",
         "last_name",
@@ -250,35 +535,37 @@ class VisitorAdmin(admin.ModelAdmin):
         "emergency_contact_phone",
         "visitor_type",
     )
-    list_filter = ("visitor_type",)
-    search_fields = ("document_id", "last_name", "first_name")
+
+    list_filter = (
+        "visitor_type",
+    )
+
+    search_fields = (
+        "document_id",
+        "last_name",
+        "first_name",
+    )
+
+    actions = [
+        extraer_visitantes_excel,
+    ]
 
 
-class PeriodoFilter(admin.SimpleListFilter):
-    title = "Periodo"
-    parameter_name = "periodo"
-
-    def lookups(self, request, model_admin):
-        return (
-            ("semana", "Última semana"),
-            ("mes", "Último mes"),
-        )
-
-    def queryset(self, request, queryset):
-        hoy = timezone.now()
-
-        if self.value() == "semana":
-            return queryset.filter(entry_time__gte=hoy - timedelta(days=7))
-
-        if self.value() == "mes":
-            return queryset.filter(entry_time__gte=hoy - timedelta(days=30))
-
-        return queryset
-
-
+# =========================================================
+# ADMIN VISITAS
+# =========================================================
 @admin.register(Visit)
-class VisitAdmin(admin.ModelAdmin):
-    list_display = ("id", "visitor", "person_to_visit", "entry_time", "status")
+class VisitAdmin(
+    admin.ModelAdmin
+):
+
+    list_display = (
+        "id",
+        "visitor",
+        "person_to_visit",
+        "entry_time",
+        "status",
+    )
 
     list_filter = (
         PeriodoFilter,
@@ -293,4 +580,7 @@ class VisitAdmin(admin.ModelAdmin):
         "person_to_visit",
     )
 
-    actions = [extraer_historial_csv, extraer_historial_excel]
+    actions = [
+        extraer_historial_csv,
+        extraer_visitantes_excel,
+    ]

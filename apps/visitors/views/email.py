@@ -1,7 +1,12 @@
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from email.mime.image import MIMEImage
+
+
+DOMINIO_CORPORATIVO = "@boccherini.com.co"
 
 
 def enviar_alerta_email(
@@ -12,6 +17,36 @@ def enviar_alerta_email(
     nombre_imagen="foto_recepcion.jpg"
 ):
     try:
+        # =====================================================
+        # VALIDACIÓN DE DESTINATARIO
+        # =====================================================
+
+        if not destinatario:
+            print("ERROR ENVIANDO CORREO: destinatario vacío")
+            return False
+
+        destinatario = destinatario.strip().lower()
+
+        try:
+            validate_email(destinatario)
+        except ValidationError:
+            print(
+                f"ERROR ENVIANDO CORREO: dirección inválida "
+                f"({destinatario})"
+            )
+            return False
+
+        if not destinatario.endswith(DOMINIO_CORPORATIVO):
+            print(
+                f"ERROR ENVIANDO CORREO: destinatario externo "
+                f"bloqueado ({destinatario})"
+            )
+            return False
+
+        # =====================================================
+        # ENVÍO
+        # =====================================================
+
         print(f"Intentando enviar correo a: {destinatario}")
 
         html_content = render_to_string(
@@ -58,7 +93,9 @@ def enviar_alerta_email(
 
             email.attach(imagen)
 
-            print("FOTOGRAFÍA DE RECEPCIÓN ADJUNTADA")
+            print(
+                "FOTOGRAFÍA DE RECEPCIÓN ADJUNTADA"
+            )
 
         # =====================================================
         # ENVÍO

@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 import dj_database_url
+
+load_dotenv()
 
 # =========================================================
 # BASE DIR
@@ -10,13 +13,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =========================================================
 # SECURITY
 # =========================================================
-SECRET_KEY = 'django-insecure-6bg$otkd2q9+yd+pqt)0+i&8ax60z4gc5f2$c+*3+)^x@!sau='
-DEBUG = True
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '172.16.10.250',
+    host.strip()
+    for host in os.getenv(
+        'ALLOWED_HOSTS',
+        '127.0.0.1,localhost,172.16.10.250'
+    ).split(',')
+    if host.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://172.16.10.250:8443",
 ]
 
 # =========================================================
@@ -133,18 +143,17 @@ EMAIL_USE_SSL = False
 # ----------------------------
 # AQUÍ TU CORREO DE GOOGLE
 # ----------------------------
-EMAIL_HOST_USER = 'practicante.ti@boccherini.com.co'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 
 # ----------------------------
 # AQUÍ TU CONTRASEÑA DE APLICACIÓN
-# (16 caracteres generados por Google)
 # ----------------------------
-EMAIL_HOST_PASSWORD = 'dnidwovddrzpciuc'
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 # ----------------------------
 # CORREO QUE APARECERÁ COMO REMITENTE
 # ----------------------------
-DEFAULT_FROM_EMAIL = 'Sistema Control de Accesos <practicante.ti@boccherini.com.co>'
+DEFAULT_FROM_EMAIL = 'Sistema Control de Accesos <practicante.ti    @boccherini.com.co>'
 
 # ----------------------------
 # DESTINO DE LAS ALERTAS

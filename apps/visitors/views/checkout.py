@@ -10,6 +10,7 @@ from apps.employees.models import EmployeePermission
 from .email import enviar_alerta_email
 
 
+@login_required
 def checkout_scanner(request):
     return render(request, 'visitors/checkout.html')
 

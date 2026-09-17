@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 
 from apps.visitors.models import Visitor, Visit
 from apps.employees.models import (
@@ -83,7 +84,10 @@ def buscar_visitante(request):
             'total_visitas': visitas.count(),
             'historial': historial,
             'foto': (
-                ultima_visita.photo.url
+                reverse(
+                    'visitors:servir_foto',
+                    kwargs={'ruta': ultima_visita.photo.name}
+                )
                 if ultima_visita
                 and ultima_visita.photo
                 else ''
@@ -152,11 +156,17 @@ def buscar_empleado(request):
         
         # Si existe foto de salida temprana, usarla
         if ultima_foto_salida and ultima_foto_salida.photo:
-            foto_url = ultima_foto_salida.photo.url
+            foto_url = reverse(
+                'visitors:servir_foto',
+                kwargs={'ruta': ultima_foto_salida.photo.name}
+            )
         # Si existe foto de permiso y no hay foto de salida,
         # usar la del permiso
         elif ultima_foto_permiso and ultima_foto_permiso.photo:
-            foto_url = ultima_foto_permiso.photo.url
+            foto_url = reverse(
+                'visitors:servir_foto',
+                kwargs={'ruta': ultima_foto_permiso.photo.name}
+            )
 
         return JsonResponse({
             'encontrado': True,

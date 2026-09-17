@@ -1,5 +1,6 @@
-from django.urls import path
+﻿from django.urls import path
 from . import views
+from .views.fotos import servir_foto
 
 app_name = 'visitors'
 
@@ -33,7 +34,7 @@ urlpatterns = [
         name='regreso_empleado'
     ),
 
-    # Búsquedas asíncronas para autocompletado en el formulario
+    # BÃºsquedas asÃ­ncronas para autocompletado en el formulario
     path(
         'buscar-visitante/',
         views.buscar_visitante,
@@ -44,4 +45,7 @@ urlpatterns = [
         views.buscar_empleado,
         name='buscar_empleado'
     ),
+
+    # Ruta segura para servir fotos
+    path('foto/<path:ruta>/', servir_foto, name='servir_foto'),
 ]

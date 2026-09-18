@@ -118,8 +118,8 @@ def extraer_permisos_excel(modeladmin, request, queryset):
                 img.height = 80
                 ws.add_image(img, f'K{fila}')
                 ws.row_dimensions[fila].height = 65
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"Error al insertar foto del permiso en Excel: {exc}")
 
         fila += 1
 
@@ -224,8 +224,8 @@ def extraer_salidas_tempranas_excel(modeladmin, request, queryset):
 
                 ws.row_dimensions[fila].height = 65
 
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"Error al insertar foto de salida en Excel: {exc}")
 
         fila += 1
 

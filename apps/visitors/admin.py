@@ -430,8 +430,8 @@ def extraer_visitantes_excel(
                     fila
                 ].height = 65
 
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"Error al insertar foto de visita en Excel: {exc}")
 
         fila += 1
 

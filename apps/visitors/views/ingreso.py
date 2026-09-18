@@ -1,6 +1,8 @@
 import base64
 import io
 
+from PIL import Image
+
 import qrcode
 
 from django.contrib import messages
@@ -25,15 +27,48 @@ from .email import enviar_alerta_email
 
 def obtener_imagen_base64(photo_data):
     """
-    Convierte una imagen enviada en base64 a bytes.
-    Retorna None si no existe o si la información es inválida.
+    Convierte y valida una imagen enviada en base64.
+
+    Seguridad:
+    - Solo acepta imágenes JPEG.
+    - Limita el tamaño a 2 MB.
+    - Verifica que el contenido sea realmente una imagen.
+    - Rechaza contenido manipulado o inválido.
     """
-    if not photo_data or 'base64,' not in photo_data:
+
+    MAX_IMAGE_SIZE = 2 * 1024 * 1024  # 2 MB
+
+    if not photo_data:
+        return None
+
+    if not photo_data.startswith('data:image/jpeg;base64,'):
         return None
 
     try:
-        _, imgstr = photo_data.split(';base64,', 1)
-        return base64.b64decode(imgstr)
+        _, imgstr = photo_data.split(',', 1)
+
+        imagen_bytes = base64.b64decode(
+            imgstr,
+            validate=True
+        )
+
+        if not imagen_bytes:
+            return None
+
+        if len(imagen_bytes) > MAX_IMAGE_SIZE:
+            return None
+
+        imagen = Image.open(
+            io.BytesIO(imagen_bytes)
+        )
+
+        if imagen.format != 'JPEG':
+            return None
+
+        imagen.verify()
+
+        return imagen_bytes
+
     except Exception:
         return None
 

@@ -3,12 +3,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 
-load_dotenv()
-
 # =========================================================
 # BASE DIR
 # =========================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 # =========================================================
 # SECURITY
@@ -30,6 +30,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = 31536000
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = 'DENY'
@@ -100,11 +101,26 @@ ASGI_APPLICATION = 'SistemaVisitantes.asgi.application'
 # =========================================================
 # DATABASE
 # =========================================================
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR}/db.sqlite3"
-    )
-}
+DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite3')
+
+if DB_ENGINE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'sistemavisitantes'),
+            'USER': os.getenv('DB_USER', 'sistemavisitantes'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'db'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # =========================================================
 # INTERNATIONALIZATION
@@ -159,7 +175,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 # ----------------------------
 # CORREO QUE APARECERÁ COMO REMITENTE
 # ----------------------------
-DEFAULT_FROM_EMAIL = 'Sistema Control de Accesos <practicante.ti    @boccherini.com.co>'
+DEFAULT_FROM_EMAIL = 'Sistema Control de Accesos <practicante.ti@boccherini.com.co>'
 
 # ----------------------------
 # DESTINO DE LAS ALERTAS

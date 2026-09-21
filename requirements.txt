@@ -11,3 +11,4 @@ qrcode==8.2
 sqlparse==0.6.0
 tzdata==2026.2
 openpyxl==3.1.5
+python-dotenv==1.1.1

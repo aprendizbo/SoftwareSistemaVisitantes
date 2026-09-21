@@ -4,3 +4,10 @@ db.sqlite3
 .git
 .vscode
 .env
+.env.docker
+.env.local
+.env.db
+media
+staticfiles
+*.pyc
+*.pyo
